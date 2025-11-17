@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useStore } from '../store/useStore';
 import { UnidadeMedida, IngredienteReceita } from '../types';
@@ -12,6 +13,7 @@ interface FormData {
 }
 
 export default function Receitas() {
+  const location = useLocation();
   const receitas = useStore((state) => state.receitas);
   const ingredientes = useStore((state) => state.ingredientes);
   const adicionarReceita = useStore((state) => state.adicionarReceita);
@@ -22,6 +24,21 @@ export default function Receitas() {
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [receitaDetalhes, setReceitaDetalhes] = useState<string | null>(null);
+
+  // Verifica se há uma receitaId no state da navegação e abre os detalhes automaticamente
+  useEffect(() => {
+    const state = location.state as { receitaId?: string } | null;
+    if (state?.receitaId) {
+      setReceitaDetalhes(state.receitaId);
+      // Scroll para a receita após um pequeno delay para garantir que o DOM foi renderizado
+      setTimeout(() => {
+        const element = document.getElementById(`receita-${state.receitaId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [location.state]);
 
   const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<FormData>({
     defaultValues: {
@@ -253,7 +270,7 @@ export default function Receitas() {
         ) : (
           <ul className="divide-y divide-gray-200">
             {receitas.map((receita) => (
-              <li key={receita.id} className="px-4 py-4 sm:px-6">
+              <li key={receita.id} id={`receita-${receita.id}`} className="px-4 py-4 sm:px-6">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center">
