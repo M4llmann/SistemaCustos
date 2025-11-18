@@ -161,13 +161,17 @@ export const useStore = create<StoreState>((set, get) => ({
         updatedAt: Timestamp.now(),
       });
 
-      // Recarrega ingredientes e depois recalcula receitas
+      // Recarrega ingredientes primeiro para garantir dados atualizados
       await get().carregarIngredientes();
-      // Recalcula todas as receitas que usam este ingrediente
-      // Usa get() novamente para pegar os ingredientes atualizados
+      
+      // Aguarda um momento para garantir que o estado foi atualizado
+      // e então recalcula todas as receitas que usam este ingrediente
       await get().recalculcarReceitasComIngrediente(id);
+      
+      set({ loading: false });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
+      throw error;
     }
   },
 
@@ -243,21 +247,37 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   recalculcarReceitasComIngrediente: async (ingredienteId) => {
-    const { receitas, ingredientes } = get();
+    // Busca os dados mais recentes do estado
+    const { receitas } = get();
+    const ingredientesAtualizados = get().ingredientes;
+    
+    // Encontra todas as receitas que usam este ingrediente
     const receitasParaAtualizar = receitas.filter((r) =>
       r.ingredientes.some((ing) => ing.ingredienteId === ingredienteId)
     );
 
-    for (const receita of receitasParaAtualizar) {
+    if (receitasParaAtualizar.length === 0) {
+      // Se não há receitas para atualizar, apenas recarrega para garantir sincronização
+      await get().carregarReceitas();
+      return;
+    }
+
+    // Atualiza cada receita no Firestore com os ingredientes mais recentes
+    const promises = receitasParaAtualizar.map(async (receita) => {
       const receitaRef = doc(db, 'receitas', receita.id);
-      const custoTotal = calcularCustoReceita(receita, ingredientes);
+      // Recalcula o custo usando os ingredientes atualizados
+      const custoTotal = calcularCustoReceita(receita, ingredientesAtualizados);
 
       await updateDoc(receitaRef, {
         custoTotal,
         updatedAt: Timestamp.now(),
       });
-    }
+    });
 
+    // Executa todas as atualizações em paralelo para melhor performance
+    await Promise.all(promises);
+
+    // Recarrega as receitas para atualizar o estado local com os novos custos
     await get().carregarReceitas();
   },
 }));
