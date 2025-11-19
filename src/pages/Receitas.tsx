@@ -2,16 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useStore } from '../store/useStore';
-import { UnidadeMedida, IngredienteReceita } from '../types';
+import { UnidadeMedida, IngredienteReceita, HistoricoReceita } from '../types';
 import { formatarMoeda, calcularCustoIngrediente } from '../utils/calculos';
 import { uploadImagemReceita, deletarImagemReceita } from '../utils/storage';
 import { auth } from '../config/firebase';
+import ModalHistorico from '../components/ModalHistorico';
 
 interface FormData {
   nome: string;
   ingredientes: IngredienteReceita[];
   descricao?: string;
   porcoes?: number;
+  margemLucro?: number;
 }
 
 export default function Receitas() {
@@ -29,7 +31,11 @@ export default function Receitas() {
   const [previewImagem, setPreviewImagem] = useState<string | null>(null);
   const [uploadingImagem, setUploadingImagem] = useState(false);
   const [termoBusca, setTermoBusca] = useState('');
+  const [mostrarHistorico, setMostrarHistorico] = useState(false);
+  const [historicoReceita, setHistoricoReceita] = useState<HistoricoReceita[]>([]);
+  const [receitaHistorico, setReceitaHistorico] = useState<{ id: string; nome: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const buscarHistoricoReceita = useStore((state) => state.buscarHistoricoReceita);
 
   // Verifica se há uma receitaId no state da navegação e faz scroll para ela
   useEffect(() => {
@@ -48,6 +54,7 @@ export default function Receitas() {
   const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<FormData>({
     defaultValues: {
       ingredientes: [{ ingredienteId: '', quantidade: 0, unidade: 'g' }],
+      margemLucro: 250,
     },
   });
 
@@ -132,6 +139,7 @@ export default function Receitas() {
 
       reset({
         ingredientes: [{ ingredienteId: '', quantidade: 0, unidade: 'g' }],
+        margemLucro: 250,
       });
       setImagemSelecionada(null);
       setPreviewImagem(null);
@@ -151,6 +159,7 @@ export default function Receitas() {
       ingredientes: receita.ingredientes,
       descricao: receita.descricao,
       porcoes: receita.porcoes,
+      margemLucro: receita.margemLucro || 250,
     });
     // Define preview da imagem existente se houver
     if (receita.imagemUrl) {
@@ -166,10 +175,25 @@ export default function Receitas() {
     setEditandoId(null);
     reset({
       ingredientes: [{ ingredienteId: '', quantidade: 0, unidade: 'g' }],
+      margemLucro: 250,
     });
     setImagemSelecionada(null);
     setPreviewImagem(null);
     setMostrarForm(false);
+  };
+
+  const handleAbrirHistorico = async (receita: typeof receitas[0]) => {
+    setReceitaHistorico({ id: receita.id, nome: receita.nome });
+    setMostrarHistorico(true);
+    try {
+      console.log('Buscando histórico para receita:', receita.id);
+      const historico = await buscarHistoricoReceita(receita.id);
+      console.log('Histórico encontrado:', historico);
+      setHistoricoReceita(historico);
+    } catch (error) {
+      console.error('Erro ao buscar histórico:', error);
+      setHistoricoReceita([]);
+    }
   };
 
   const calcularCustoReceitaForm = (formData: FormData): number => {
@@ -199,11 +223,13 @@ export default function Receitas() {
 
   return (
     <div className="px-4 py-6 sm:px-0">
-      <div className="mb-6">
+      <div className="mb-8">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-lime-800">Receitas</h2>
-            <p className="mt-1 text-sm text-gray-600">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-2">
+              Receitas
+            </h2>
+            <p className="text-sm text-gray-500 font-medium">
               Cadastre e gerencie suas receitas
             </p>
           </div>
@@ -212,24 +238,33 @@ export default function Receitas() {
               <div className="w-64">
                 <input
                   type="text"
-                  placeholder="Buscar receitas..."
+                  placeholder="🔍 Buscar receitas..."
                   value={termoBusca}
                   onChange={(e) => setTermoBusca(e.target.value)}
-                  className="w-full px-4 py-2 border border-lime-300 rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-lime-500"
+                  className="w-full px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
                 />
               </div>
               {termoBusca && (
                 <button
                   onClick={() => setTermoBusca('')}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-rose-400 hover:text-rose-600 transition-colors"
                   title="Limpar busca"
                 >
                   ✕
                 </button>
               )}
               <button
-                onClick={() => setMostrarForm(true)}
-                className="bg-lime-600 text-white px-4 py-2 rounded-md hover:bg-lime-700 font-semibold shadow-md transition-colors whitespace-nowrap"
+                onClick={() => {
+                  setEditandoId(null);
+                  reset({
+                    ingredientes: [{ ingredienteId: '', quantidade: 0, unidade: 'g' }],
+                    margemLucro: 250,
+                  });
+                  setImagemSelecionada(null);
+                  setPreviewImagem(null);
+                  setMostrarForm(true);
+                }}
+                className="bg-gradient-to-r from-rose-500 to-pink-500 text-white px-5 py-2.5 rounded-xl hover:from-rose-600 hover:to-pink-600 font-semibold shadow-lg shadow-rose-200/50 hover:shadow-xl transition-all duration-200 whitespace-nowrap"
               >
                 + Nova Receita
               </button>
@@ -239,8 +274,8 @@ export default function Receitas() {
       </div>
 
       {mostrarForm && (
-        <div className="bg-white shadow-lg rounded-lg p-6 mb-6 border-l-4 border-lime-400">
-          <h3 className="text-lg font-bold text-lime-800 mb-4">
+        <div className="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-8 mb-8 border border-rose-100">
+          <h3 className="text-xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-6">
             {editandoId ? 'Editar Receita' : 'Nova Receita'}
           </h3>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -250,7 +285,7 @@ export default function Receitas() {
               </label>
               <input
                 {...register('nome', { required: 'Nome é obrigatório' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500"
+                    className="w-full px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
               />
               {errors.nome && (
                 <p className="text-red-600 text-sm mt-1">{errors.nome.message}</p>
@@ -267,7 +302,7 @@ export default function Receitas() {
                     {...register(`ingredientes.${index}.ingredienteId`, {
                       required: 'Selecione um ingrediente',
                     })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500"
+                    className="flex-1 px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
                   >
                     <option value="">Selecione...</option>
                     {ingredientes.map((ing) => (
@@ -284,11 +319,11 @@ export default function Receitas() {
                       min: { value: 0.01, message: 'Quantidade deve ser maior que zero' },
                     })}
                     placeholder="Qtd"
-                    className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500"
+                    className="w-24 px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
                   />
                   <select
                     {...register(`ingredientes.${index}.unidade`)}
-                    className="w-20 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500"
+                    className="w-20 px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
                   >
                     {unidades.map((unidade) => (
                       <option key={unidade} value={unidade}>
@@ -300,7 +335,7 @@ export default function Receitas() {
                     <button
                       type="button"
                       onClick={() => remove(index)}
-                      className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                      className="px-3 py-2 bg-gradient-to-r from-red-400 to-red-500 text-white rounded-xl hover:from-red-500 hover:to-red-600 shadow-sm transition-all"
                     >
                       Remover
                     </button>
@@ -310,7 +345,7 @@ export default function Receitas() {
               <button
                 type="button"
                 onClick={() => append({ ingredienteId: '', quantidade: 0, unidade: 'g' })}
-                className="mt-2 text-sm text-lime-700 hover:text-lime-900 font-semibold"
+                className="mt-2 text-sm text-rose-600 hover:text-rose-700 font-semibold transition-colors"
               >
                 + Adicionar Ingrediente
               </button>
@@ -325,21 +360,57 @@ export default function Receitas() {
                   type="number"
                   step="1"
                   {...register('porcoes', { min: 1 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500"
+                  className="w-full px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Margem de Lucro (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  {...register('margemLucro', { 
+                    required: 'Margem de lucro é obrigatória',
+                    min: { value: 0.1, message: 'Margem deve ser maior que zero' },
+                  })}
+                  className="w-full px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
+                />
+                {errors.margemLucro && (
+                  <p className="text-red-600 text-sm mt-1">{errors.margemLucro.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Custo Estimado
                 </label>
-                <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md">
+                <div className="px-4 py-2.5 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-xl">
                   <span className="font-medium text-gray-900">
                     {formatarMoeda(custoEstimado)}
                   </span>
                   {formData.porcoes && formData.porcoes > 0 && (
                     <span className="text-sm text-gray-500 ml-2">
                       ({formatarMoeda(custoEstimado / formData.porcoes)}/porção)
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Preço Sugerido
+                </label>
+                <div className="px-4 py-2.5 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl">
+                  <span className="font-medium text-gray-900">
+                    {formatarMoeda(custoEstimado * ((formData.margemLucro || 250) / 100))}
+                  </span>
+                  {formData.porcoes && formData.porcoes > 0 && (
+                    <span className="text-sm text-gray-500 ml-2">
+                      ({formatarMoeda((custoEstimado * ((formData.margemLucro || 250) / 100)) / formData.porcoes)}/porção)
                     </span>
                   )}
                 </div>
@@ -368,12 +439,12 @@ export default function Receitas() {
                     <img
                       src={previewImagem}
                       alt="Preview"
-                      className="h-32 w-32 object-cover rounded-md border border-gray-300"
+                      className="h-32 w-32 object-cover rounded-xl border-2 border-rose-200 shadow-md"
                     />
                     <button
                       type="button"
                       onClick={removerImagem}
-                      className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-700"
+                      className="absolute -top-2 -right-2 bg-gradient-to-r from-red-400 to-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs hover:from-red-500 hover:to-red-600 shadow-lg transition-all"
                     >
                       ×
                     </button>
@@ -384,7 +455,7 @@ export default function Receitas() {
                   type="file"
                   accept="image/*"
                   onChange={handleImagemChange}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-lime-50 file:text-lime-700 hover:file:bg-lime-100"
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-rose-50 file:to-pink-50 file:text-rose-600 hover:file:from-rose-100 hover:file:to-pink-100"
                 />
                 <p className="text-xs text-gray-500">
                   Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 5MB
@@ -392,18 +463,18 @@ export default function Receitas() {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-end space-x-3 mt-6">
                     <button
                       type="button"
                       onClick={handleCancel}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-amber-50 font-semibold transition-colors"
+                      className="px-5 py-2.5 border border-rose-200 rounded-xl text-gray-600 hover:bg-rose-50 hover:border-rose-300 font-semibold transition-all duration-200 shadow-sm"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={loading || uploadingImagem}
-                      className="px-4 py-2 bg-lime-600 text-white rounded-md hover:bg-lime-700 disabled:opacity-50 font-semibold shadow-md transition-colors"
+                      className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl hover:from-rose-600 hover:to-pink-600 disabled:opacity-50 font-semibold shadow-lg shadow-rose-200/50 hover:shadow-xl transition-all duration-200"
                     >
                       {uploadingImagem ? 'Enviando imagem...' : loading ? 'Salvando...' : editandoId ? 'Atualizar' : 'Salvar'}
                     </button>
@@ -412,86 +483,86 @@ export default function Receitas() {
         </div>
       )}
 
-      <div className="bg-white shadow-lg overflow-hidden sm:rounded-md border border-lime-200">
+      <div className="bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden rounded-2xl border border-rose-100">
         {receitas.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Nenhuma receita cadastrada ainda.</p>
+          <div className="text-center py-16">
+            <p className="text-gray-400 font-medium">Nenhuma receita cadastrada ainda.</p>
           </div>
         ) : receitasFiltradas.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Nenhuma receita encontrada com "{termoBusca}".</p>
+          <div className="text-center py-16">
+            <p className="text-gray-400 font-medium">Nenhuma receita encontrada com "{termoBusca}".</p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-200">
+          <ul className="divide-y divide-rose-50">
             {receitasFiltradas.map((receita) => (
-              <li key={receita.id} id={`receita-${receita.id}`} className="px-4 py-4 hover:bg-green-50/30 transition-colors border-l-4 border-lime-300">
-                <div className="grid grid-cols-[160px_2fr_1fr_0.5fr] gap-4 items-start">
+              <li key={receita.id} id={`receita-${receita.id}`} className="px-6 py-5 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 transition-all duration-200 border-l-4 border-transparent hover:border-rose-400">
+                <div className="grid grid-cols-[160px_2fr_1fr_280px] gap-5 items-stretch">
                   {/* Coluna 1: Imagem */}
-                  <div className="flex items-center justify-center h-full">
+                  <div className="flex items-center justify-center">
                     {receita.imagemUrl ? (
                       <img
                         src={receita.imagemUrl}
                         alt={receita.nome}
-                        className="w-40 h-40 object-cover rounded-md border-2 border-lime-300 shadow-sm"
+                        className="w-40 h-40 object-cover rounded-xl border-2 border-rose-200 shadow-lg"
                       />
                     ) : (
-                      <div className="w-40 h-40 bg-lime-100 rounded-md border-2 border-lime-300 flex items-center justify-center">
-                        <span className="text-lime-600 text-4xl">🍰</span>
+                      <div className="w-40 h-40 bg-gradient-to-br from-rose-100 to-pink-100 rounded-xl border-2 border-rose-200 flex items-center justify-center shadow-lg">
+                        <span className="text-rose-400 text-4xl">🍰</span>
                       </div>
                     )}
                   </div>
 
                   {/* Coluna 2: Nome e Descrição */}
-                  <div className="flex flex-col h-40 bg-amber-50/50 rounded-md p-3">
-                    <p className="text-lg font-bold text-gray-900 mb-1.5 text-amber-700">
+                  <div className="flex flex-col bg-gradient-to-br from-rose-50/80 to-pink-50/80 rounded-xl p-4 border border-rose-100">
+                    <p className="text-lg font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-2">
                       {receita.nome}
                     </p>
-                    <p className="text-xs font-semibold text-amber-600 mb-1.5">Descrição:</p>
+                    <p className="text-xs font-semibold text-rose-500 mb-1.5">Descrição:</p>
                     {receita.descricao ? (
-                      <p className="text-sm text-gray-700 leading-relaxed break-words overflow-y-auto">
+                      <p className="text-sm text-gray-700 leading-relaxed break-words overflow-y-auto flex-1">
                         {receita.descricao}
                       </p>
                     ) : (
-                      <p className="text-sm text-gray-400 italic">Sem descrição</p>
+                      <p className="text-sm text-gray-400 italic flex-1">Sem descrição</p>
                     )}
                   </div>
 
                   {/* Coluna 3: Ingredientes */}
-                  <div className="flex flex-col h-40 bg-lime-50/50 rounded-md p-3">
-                    <p className="text-xs font-semibold text-lime-700 mb-2">
-                      Ingredientes (<span className="font-bold text-lime-800">{receita.ingredientes.length}</span>):
+                  <div className="flex flex-col bg-gradient-to-br from-purple-50/80 to-pink-50/80 rounded-xl p-4 border border-purple-100">
+                    <p className="text-xs font-semibold text-purple-600 mb-2">
+                      Ingredientes (<span className="font-bold text-purple-700">{receita.ingredientes.length}</span>):
                     </p>
-                    <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    <ul className="grid grid-cols-2 gap-x-4 gap-y-1 flex-1">
                       {receita.ingredientes.map((ing, idx) => {
                         const ingrediente = ingredientes.find((i) => i.id === ing.ingredienteId);
                         return (
                           <li key={idx} className="text-sm text-gray-700">
-                            <span className="font-medium text-lime-800">{ingrediente?.nome || 'Ingrediente não encontrado'}</span>: <span className="font-bold text-lime-900">{ing.quantidade}</span> <span className="text-gray-600">{ing.unidade}</span>
+                            <span className="font-medium text-purple-700">{ingrediente?.nome || 'Ingrediente não encontrado'}</span>: <span className="font-bold text-purple-800">{ing.quantidade}</span> <span className="text-gray-600">{ing.unidade}</span>
                           </li>
                         );
                       })}
                     </ul>
                     {receita.porcoes && receita.porcoes > 0 && (
-                      <p className="text-xs text-lime-700 mt-2">
-                        <span className="font-bold text-lime-800">{receita.porcoes}</span> porção(ões)
+                      <p className="text-xs text-purple-600 mt-2">
+                        <span className="font-bold text-purple-700">{receita.porcoes}</span> porção(ões)
                       </p>
                     )}
                   </div>
 
                   {/* Coluna 4: Custo, Preço Sugerido e Botões */}
-                  <div className="flex flex-col">
+                  <div className="flex flex-col w-[280px] h-full">
                     {/* Custo e Preço Sugerido */}
                     <div className="flex justify-between items-stretch mb-4 gap-2">
                       {/* Custo à esquerda */}
-                      <div className="bg-lime-100 rounded-md p-2 flex-1 flex flex-col justify-between min-h-[80px]">
+                      <div className="bg-gradient-to-br from-rose-100 to-rose-50 rounded-xl p-3 w-[130px] flex flex-col justify-between min-h-[80px] border border-rose-200 shadow-sm">
                         <div>
-                          <p className="text-xs font-semibold text-lime-700 mb-1">Custo Unitário:</p>
-                          <p className="text-xl font-bold text-lime-900">
+                          <p className="text-xs font-semibold text-rose-600 mb-1">Custo Unitário:</p>
+                          <p className="text-xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
                             {formatarMoeda(receita.custoTotal)}
                           </p>
                         </div>
                         {receita.porcoes && receita.porcoes > 0 ? (
-                          <p className="text-xs text-lime-700 mt-1">
+                          <p className="text-xs text-rose-600 mt-1">
                             <span className="font-bold">{formatarMoeda(receita.custoTotal / receita.porcoes)}</span>/porção
                           </p>
                         ) : (
@@ -500,12 +571,15 @@ export default function Receitas() {
                       </div>
 
                       {/* Preço Sugerido */}
-                      <div className="bg-amber-100 rounded-md p-2 flex-1 flex flex-col justify-between min-h-[80px]">
+                      <div className="bg-gradient-to-br from-purple-100 to-purple-50 rounded-xl p-3 w-[130px] flex flex-col justify-between min-h-[80px] border border-purple-200 shadow-sm">
                         <div>
-                          <p className="text-xs font-semibold text-amber-700 mb-1">
-                            Preço Sugerido: <span className="text-xl font-bold text-amber-900">
-                              {formatarMoeda(receita.custoTotal * 2)}
+                          <p className="text-xs font-semibold text-purple-600 mb-1">
+                            Preço Sugerido: <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                              {formatarMoeda(receita.custoTotal * ((receita.margemLucro || 250) / 100))}
                             </span>
+                          </p>
+                          <p className="text-[10px] text-purple-500 mt-0.5">
+                            ({receita.margemLucro || 250}% margem)
                           </p>
                         </div>
                         <div className="mt-1"></div>
@@ -513,12 +587,18 @@ export default function Receitas() {
                     </div>
 
                     {/* Botões */}
-                    <div className="flex flex-col gap-2 w-full">
+                    <div className="flex gap-2 w-full">
                       <button
                         onClick={() => handleEdit(receita)}
-                        className="text-white bg-lime-600 hover:bg-lime-700 text-sm font-semibold px-3 py-2 rounded-md transition-colors shadow-sm"
+                        className="text-white bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-sm font-semibold px-3 py-2 rounded-xl transition-all duration-200 shadow-md shadow-rose-200/50 hover:shadow-lg flex-1"
                       >
                         Editar
+                      </button>
+                      <button
+                        onClick={() => handleAbrirHistorico(receita)}
+                        className="text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-sm font-semibold px-3 py-2 rounded-xl transition-all duration-200 shadow-md shadow-purple-200/50 hover:shadow-lg flex-1"
+                      >
+                        Histórico
                       </button>
                       <button
                         onClick={() => {
@@ -526,7 +606,7 @@ export default function Receitas() {
                             deletarReceita(receita.id);
                           }
                         }}
-                        className="text-white bg-amber-500 hover:bg-amber-600 text-sm font-semibold px-3 py-2 rounded-md transition-colors shadow-sm"
+                        className="text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-sm font-semibold px-3 py-2 rounded-xl transition-all duration-200 shadow-md shadow-red-200/50 hover:shadow-lg flex-1"
                       >
                         Deletar
                       </button>
@@ -538,6 +618,20 @@ export default function Receitas() {
           </ul>
         )}
       </div>
+
+      {mostrarHistorico && receitaHistorico && (
+        <ModalHistorico
+          isOpen={mostrarHistorico}
+          onClose={() => {
+            setMostrarHistorico(false);
+            setReceitaHistorico(null);
+            setHistoricoReceita([]);
+          }}
+          historico={historicoReceita}
+          tipo="receita"
+          nome={receitaHistorico.nome}
+        />
+      )}
     </div>
   );
 }

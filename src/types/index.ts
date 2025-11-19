@@ -27,8 +27,30 @@ export interface Receita {
   custoPorPorcao?: number; // Opcional
   porcoes?: number; // Número de porções (opcional)
   imagemUrl?: string; // URL da imagem da receita
+  margemLucro?: number; // Porcentagem de margem de lucro (padrão 150%)
   userId: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface HistoricoIngrediente {
+  id: string;
+  nome: string;
+  precoTotal: number;
+  medidaTotal: number;
+  unidadeBase: UnidadeMedida;
+  precoPorUnidade: number;
+  data: Date;
+  userId: string;
+}
+
+export interface HistoricoReceita {
+  id: string;
+  nome: string;
+  custoTotal: number;
+  precoSugerido: number;
+  margemLucro?: number;
+  data: Date;
+  userId: string;
 }
 

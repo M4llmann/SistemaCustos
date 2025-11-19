@@ -12,26 +12,28 @@ export default function Dashboard() {
 
   return (
     <div className="px-4 py-6 sm:px-0">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-lime-800">Dashboard</h2>
-        <p className="mt-1 text-sm text-gray-600">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-2">
+          Dashboard
+        </h2>
+        <p className="text-sm text-gray-500 font-medium">
           Visão geral do seu sistema de custos
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-2">
-        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-lime-400 hover:shadow-xl transition-shadow">
-          <div className="p-5 bg-gradient-to-r from-lime-50 to-white">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+        <div className="bg-white/90 backdrop-blur-sm overflow-hidden shadow-xl rounded-2xl border border-rose-100 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300">
+          <div className="p-6 bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 bg-gradient-to-br from-rose-400 to-pink-400 rounded-2xl p-4 shadow-lg shadow-rose-200/50">
                 <div className="text-3xl">📦</div>
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-semibold text-lime-700 truncate">
+                  <dt className="text-sm font-semibold text-rose-600 truncate mb-1">
                     Total de Ingredientes
                   </dt>
-                  <dd className="text-2xl font-bold text-lime-900 mt-1">
+                  <dd className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
                     {totalIngredientes}
                   </dd>
                 </dl>
@@ -40,18 +42,18 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white overflow-hidden shadow-lg rounded-lg border-l-4 border-amber-400 hover:shadow-xl transition-shadow">
-          <div className="p-5 bg-gradient-to-r from-amber-50 to-white">
+        <div className="bg-white/90 backdrop-blur-sm overflow-hidden shadow-xl rounded-2xl border border-purple-100 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300">
+          <div className="p-6 bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 bg-gradient-to-br from-purple-400 to-pink-400 rounded-2xl p-4 shadow-lg shadow-purple-200/50">
                 <div className="text-3xl">🍰</div>
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-semibold text-amber-700 truncate">
+                  <dt className="text-sm font-semibold text-purple-600 truncate mb-1">
                     Total de Receitas
                   </dt>
-                  <dd className="text-2xl font-bold text-amber-900 mt-1">
+                  <dd className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                     {totalReceitas}
                   </dd>
                 </dl>
@@ -62,42 +64,42 @@ export default function Dashboard() {
       </div>
 
       {receitas.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-lg font-bold text-lime-800 mb-4">
+        <div className="mt-10">
+          <h3 className="text-xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-6">
             Receitas Recentes
           </h3>
-          <div className="bg-white shadow-lg overflow-hidden sm:rounded-md border border-lime-200">
-            <ul className="divide-y divide-lime-100">
+          <div className="bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden rounded-2xl border border-rose-100">
+            <ul className="divide-y divide-rose-50">
               {receitas.slice(0, 5).map((receita) => (
                 <li 
                   key={receita.id}
                   onClick={() => navigate('/receitas', { state: { receitaId: receita.id } })}
-                  className="cursor-pointer hover:bg-lime-50 transition-colors border-l-4 border-transparent hover:border-lime-400"
+                  className="cursor-pointer hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 transition-all duration-200 border-l-4 border-transparent hover:border-rose-400 hover:shadow-md"
                 >
-                  <div className="px-4 py-4 sm:px-6 flex justify-between items-center">
-                    <div className="flex items-center gap-3 flex-1">
+                  <div className="px-6 py-5 flex justify-between items-center">
+                    <div className="flex items-center gap-4 flex-1">
                       {receita.imagemUrl && (
                         <img
                           src={receita.imagemUrl}
                           alt={receita.nome}
-                          className="h-12 w-12 object-cover rounded-md border-2 border-lime-300 flex-shrink-0"
+                          className="h-14 w-14 object-cover rounded-xl border-2 border-rose-200 shadow-md flex-shrink-0"
                         />
                       )}
                       <div>
-                        <p className="text-sm font-bold text-lime-900">
+                        <p className="text-sm font-bold text-gray-800 mb-1">
                           {receita.nome}
                         </p>
-                        <p className="text-sm text-lime-700">
+                        <p className="text-xs text-rose-500 font-medium">
                           <span className="font-semibold">{receita.ingredientes.length}</span> ingrediente(s)
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold text-amber-900">
+                      <p className="text-sm font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                         {formatarMoeda(receita.custoTotal)}
                       </p>
                       {receita.porcoes && receita.porcoes > 0 && (
-                        <p className="text-xs text-amber-700">
+                        <p className="text-xs text-purple-500 font-medium mt-1">
                           <span className="font-semibold">{formatarMoeda(receita.custoTotal / receita.porcoes)}</span>/porção
                         </p>
                       )}
