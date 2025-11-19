@@ -28,6 +28,7 @@ export default function Receitas() {
   const [imagemSelecionada, setImagemSelecionada] = useState<File | null>(null);
   const [previewImagem, setPreviewImagem] = useState<string | null>(null);
   const [uploadingImagem, setUploadingImagem] = useState(false);
+  const [termoBusca, setTermoBusca] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Verifica se há uma receitaId no state da navegação e faz scroll para ela
@@ -190,23 +191,51 @@ export default function Receitas() {
   const formData = watch();
   const custoEstimado = mostrarForm ? calcularCustoReceitaForm(formData) : 0;
 
+  // Filtrar receitas baseado no termo de busca
+  const receitasFiltradas = receitas.filter((receita) =>
+    receita.nome.toLowerCase().includes(termoBusca.toLowerCase()) ||
+    (receita.descricao && receita.descricao.toLowerCase().includes(termoBusca.toLowerCase()))
+  );
+
   return (
     <div className="px-4 py-6 sm:px-0">
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-lime-800">Receitas</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Cadastre e gerencie suas receitas
-          </p>
+      <div className="mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-lime-800">Receitas</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Cadastre e gerencie suas receitas
+            </p>
+          </div>
+          {!mostrarForm && (
+            <div className="flex items-center gap-3">
+              <div className="w-64">
+                <input
+                  type="text"
+                  placeholder="Buscar receitas..."
+                  value={termoBusca}
+                  onChange={(e) => setTermoBusca(e.target.value)}
+                  className="w-full px-4 py-2 border border-lime-300 rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-lime-500"
+                />
+              </div>
+              {termoBusca && (
+                <button
+                  onClick={() => setTermoBusca('')}
+                  className="text-gray-500 hover:text-gray-700"
+                  title="Limpar busca"
+                >
+                  ✕
+                </button>
+              )}
+              <button
+                onClick={() => setMostrarForm(true)}
+                className="bg-lime-600 text-white px-4 py-2 rounded-md hover:bg-lime-700 font-semibold shadow-md transition-colors whitespace-nowrap"
+              >
+                + Nova Receita
+              </button>
+            </div>
+          )}
         </div>
-        {!mostrarForm && (
-          <button
-            onClick={() => setMostrarForm(true)}
-            className="bg-lime-600 text-white px-4 py-2 rounded-md hover:bg-lime-700 font-semibold shadow-md transition-colors"
-          >
-            + Nova Receita
-          </button>
-        )}
       </div>
 
       {mostrarForm && (
@@ -388,28 +417,32 @@ export default function Receitas() {
           <div className="text-center py-12">
             <p className="text-gray-500">Nenhuma receita cadastrada ainda.</p>
           </div>
+        ) : receitasFiltradas.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Nenhuma receita encontrada com "{termoBusca}".</p>
+          </div>
         ) : (
           <ul className="divide-y divide-gray-200">
-            {receitas.map((receita) => (
+            {receitasFiltradas.map((receita) => (
               <li key={receita.id} id={`receita-${receita.id}`} className="px-4 py-4 hover:bg-green-50/30 transition-colors border-l-4 border-lime-300">
-                <div className="grid grid-cols-[144px_2fr_1fr_0.5fr] gap-4 items-start">
+                <div className="grid grid-cols-[160px_2fr_1fr_0.5fr] gap-4 items-start">
                   {/* Coluna 1: Imagem */}
                   <div className="flex items-center justify-center h-full">
                     {receita.imagemUrl ? (
                       <img
                         src={receita.imagemUrl}
                         alt={receita.nome}
-                        className="w-36 h-36 object-cover rounded-md border-2 border-lime-300 shadow-sm"
+                        className="w-40 h-40 object-cover rounded-md border-2 border-lime-300 shadow-sm"
                       />
                     ) : (
-                      <div className="w-36 h-36 bg-lime-100 rounded-md border-2 border-lime-300 flex items-center justify-center">
+                      <div className="w-40 h-40 bg-lime-100 rounded-md border-2 border-lime-300 flex items-center justify-center">
                         <span className="text-lime-600 text-4xl">🍰</span>
                       </div>
                     )}
                   </div>
 
                   {/* Coluna 2: Nome e Descrição */}
-                  <div className="flex flex-col h-36 bg-amber-50/50 rounded-md p-3">
+                  <div className="flex flex-col h-40 bg-amber-50/50 rounded-md p-3">
                     <p className="text-lg font-bold text-gray-900 mb-1.5 text-amber-700">
                       {receita.nome}
                     </p>
@@ -424,7 +457,7 @@ export default function Receitas() {
                   </div>
 
                   {/* Coluna 3: Ingredientes */}
-                  <div className="flex flex-col bg-lime-50/50 rounded-md p-3">
+                  <div className="flex flex-col h-40 bg-lime-50/50 rounded-md p-3">
                     <p className="text-xs font-semibold text-lime-700 mb-2">
                       Ingredientes (<span className="font-bold text-lime-800">{receita.ingredientes.length}</span>):
                     </p>
@@ -448,26 +481,34 @@ export default function Receitas() {
                   {/* Coluna 4: Custo, Preço Sugerido e Botões */}
                   <div className="flex flex-col">
                     {/* Custo e Preço Sugerido */}
-                    <div className="flex justify-between items-start mb-4 gap-2">
+                    <div className="flex justify-between items-stretch mb-4 gap-2">
                       {/* Custo à esquerda */}
-                      <div className="bg-lime-100 rounded-md p-2 flex-1">
-                        <p className="text-xs font-semibold text-lime-700 mb-1">Custo:</p>
-                        <p className="text-xl font-bold text-lime-900">
-                          {formatarMoeda(receita.custoTotal)}
-                        </p>
-                        {receita.porcoes && receita.porcoes > 0 && (
+                      <div className="bg-lime-100 rounded-md p-2 flex-1 flex flex-col justify-between min-h-[80px]">
+                        <div>
+                          <p className="text-xs font-semibold text-lime-700 mb-1">Custo Unitário:</p>
+                          <p className="text-xl font-bold text-lime-900">
+                            {formatarMoeda(receita.custoTotal)}
+                          </p>
+                        </div>
+                        {receita.porcoes && receita.porcoes > 0 ? (
                           <p className="text-xs text-lime-700 mt-1">
                             <span className="font-bold">{formatarMoeda(receita.custoTotal / receita.porcoes)}</span>/porção
                           </p>
+                        ) : (
+                          <div className="mt-1"></div>
                         )}
                       </div>
 
-                      {/* Preço Sugerido à direita */}
-                      <div className="bg-amber-100 rounded-md p-2 flex-1 text-right">
-                        <p className="text-xs font-semibold text-amber-700 mb-1">Preço Sugerido:</p>
-                        <p className="text-xl font-bold text-amber-900">
-                          {formatarMoeda(receita.custoTotal * 2)}
-                        </p>
+                      {/* Preço Sugerido */}
+                      <div className="bg-amber-100 rounded-md p-2 flex-1 flex flex-col justify-between min-h-[80px]">
+                        <div>
+                          <p className="text-xs font-semibold text-amber-700 mb-1">
+                            Preço Sugerido: <span className="text-xl font-bold text-amber-900">
+                              {formatarMoeda(receita.custoTotal * 2)}
+                            </span>
+                          </p>
+                        </div>
+                        <div className="mt-1"></div>
                       </div>
                     </div>
 

@@ -20,6 +20,7 @@ export default function Ingredientes() {
 
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [mostrarForm, setMostrarForm] = useState(false);
+  const [termoBusca, setTermoBusca] = useState('');
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>();
 
@@ -53,23 +54,50 @@ export default function Ingredientes() {
 
   const unidades: UnidadeMedida[] = ['g', 'kg', 'ml', 'L', 'un'];
 
+  // Filtrar ingredientes baseado no termo de busca
+  const ingredientesFiltrados = ingredientes.filter((ingrediente) =>
+    ingrediente.nome.toLowerCase().includes(termoBusca.toLowerCase())
+  );
+
   return (
     <div className="px-4 py-6 sm:px-0">
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-lime-800">Ingredientes</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Cadastre e gerencie seus ingredientes
-          </p>
+      <div className="mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-lime-800">Ingredientes</h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Cadastre e gerencie seus ingredientes
+            </p>
+          </div>
+          {!mostrarForm && (
+            <div className="flex items-center gap-3">
+              <div className="w-64">
+                <input
+                  type="text"
+                  placeholder="Buscar ingredientes..."
+                  value={termoBusca}
+                  onChange={(e) => setTermoBusca(e.target.value)}
+                  className="w-full px-4 py-2 border border-lime-300 rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500 focus:border-lime-500"
+                />
+              </div>
+              {termoBusca && (
+                <button
+                  onClick={() => setTermoBusca('')}
+                  className="text-gray-500 hover:text-gray-700"
+                  title="Limpar busca"
+                >
+                  ✕
+                </button>
+              )}
+              <button
+                onClick={() => setMostrarForm(true)}
+                className="bg-lime-600 text-white px-4 py-2 rounded-md hover:bg-lime-700 font-semibold shadow-md transition-colors whitespace-nowrap"
+              >
+                + Novo Ingrediente
+              </button>
+            </div>
+          )}
         </div>
-        {!mostrarForm && (
-          <button
-            onClick={() => setMostrarForm(true)}
-            className="bg-lime-600 text-white px-4 py-2 rounded-md hover:bg-lime-700 font-semibold shadow-md transition-colors"
-          >
-            + Novo Ingrediente
-          </button>
-        )}
       </div>
 
       {mostrarForm && (
@@ -170,10 +198,14 @@ export default function Ingredientes() {
           <div className="text-center py-12">
             <p className="text-gray-500">Nenhum ingrediente cadastrado ainda.</p>
           </div>
+        ) : ingredientesFiltrados.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">Nenhum ingrediente encontrado com "{termoBusca}".</p>
+          </div>
         ) : (
-          <ul className="divide-y divide-lime-100">
-            {ingredientes.map((ingrediente) => (
-              <li key={ingrediente.id} className="px-4 py-4 sm:px-6 hover:bg-lime-50 transition-colors border-l-4 border-transparent hover:border-lime-400">
+          <ul className="p-4 space-y-3">
+            {ingredientesFiltrados.map((ingrediente) => (
+              <li key={ingrediente.id} className="bg-white border border-lime-200 rounded-lg px-4 py-4 sm:px-6 hover:bg-lime-50 hover:border-lime-300 hover:shadow-md transition-all">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center">
