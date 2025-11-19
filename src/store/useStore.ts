@@ -89,12 +89,21 @@ export const useStore = create<StoreState>((set, get) => ({
 
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        receitas.push({
+        // Migração: converte observacoes antigas para descricao
+        const receitaData: any = {
           id: docSnap.id,
           ...data,
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date(),
-        } as Receita);
+        };
+        
+        // Se tem observacoes antigas mas não tem descricao, migra
+        if (data.observacoes && !data.descricao) {
+          receitaData.descricao = data.observacoes;
+          delete receitaData.observacoes;
+        }
+        
+        receitas.push(receitaData as Receita);
       });
 
       // Recalcula custos das receitas
@@ -224,11 +233,19 @@ export const useStore = create<StoreState>((set, get) => ({
       const receitaAtualizada = { ...receitaAtual, ...dados };
       const custoTotal = calcularCustoReceita(receitaAtualizada, ingredientes);
 
-      await updateDoc(receitaRef, {
+      // Prepara dados para atualização, removendo observacoes antigas se existir
+      const dadosAtualizacao: any = {
         ...dados,
         custoTotal,
         updatedAt: Timestamp.now(),
-      });
+      };
+      
+      // Remove campo observacoes antigo se estiver presente
+      if ('observacoes' in dadosAtualizacao) {
+        delete dadosAtualizacao.observacoes;
+      }
+
+      await updateDoc(receitaRef, dadosAtualizacao);
 
       await get().carregarReceitas();
     } catch (error) {

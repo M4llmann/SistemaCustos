@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useStore } from '../store/useStore';
 import { UnidadeMedida, IngredienteReceita } from '../types';
 import { formatarMoeda, calcularCustoIngrediente } from '../utils/calculos';
+import { uploadImagemReceita, deletarImagemReceita } from '../utils/storage';
+import { auth } from '../config/firebase';
 
 interface FormData {
   nome: string;
   ingredientes: IngredienteReceita[];
-  observacoes?: string;
+  descricao?: string;
   porcoes?: number;
 }
 
@@ -23,13 +25,15 @@ export default function Receitas() {
 
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [mostrarForm, setMostrarForm] = useState(false);
-  const [receitaDetalhes, setReceitaDetalhes] = useState<string | null>(null);
+  const [imagemSelecionada, setImagemSelecionada] = useState<File | null>(null);
+  const [previewImagem, setPreviewImagem] = useState<string | null>(null);
+  const [uploadingImagem, setUploadingImagem] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Verifica se há uma receitaId no state da navegação e abre os detalhes automaticamente
+  // Verifica se há uma receitaId no state da navegação e faz scroll para ela
   useEffect(() => {
     const state = location.state as { receitaId?: string } | null;
     if (state?.receitaId) {
-      setReceitaDetalhes(state.receitaId);
       // Scroll para a receita após um pequeno delay para garantir que o DOM foi renderizado
       setTimeout(() => {
         const element = document.getElementById(`receita-${state.receitaId}`);
@@ -53,17 +57,90 @@ export default function Receitas() {
 
   const unidades: UnidadeMedida[] = ['g', 'kg', 'ml', 'L', 'un'];
 
-  const onSubmit = async (data: FormData) => {
-    if (editandoId) {
-      await atualizarReceita(editandoId, data);
-      setEditandoId(null);
-    } else {
-      await adicionarReceita(data);
+  const handleImagemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImagemSelecionada(file);
+      // Cria preview da imagem
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImagem(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-    reset({
-      ingredientes: [{ ingredienteId: '', quantidade: 0, unidade: 'g' }],
-    });
-    setMostrarForm(false);
+  };
+
+  const removerImagem = () => {
+    setImagemSelecionada(null);
+    setPreviewImagem(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const onSubmit = async (data: FormData) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    setUploadingImagem(true);
+    let imagemUrl: string | undefined = undefined;
+    let imagemAntigaUrl: string | undefined = undefined;
+
+    try {
+      // Se está editando, guarda a URL da imagem antiga antes de fazer upload da nova
+      if (editandoId && imagemSelecionada) {
+        const receitaAtual = receitas.find((r) => r.id === editandoId);
+        imagemAntigaUrl = receitaAtual?.imagemUrl;
+      }
+
+      // Se há uma nova imagem selecionada, faz upload
+      if (imagemSelecionada) {
+        try {
+          imagemUrl = await uploadImagemReceita(imagemSelecionada, userId, editandoId || undefined);
+        } catch (uploadError: any) {
+          console.error('Erro ao fazer upload da imagem:', uploadError);
+          setUploadingImagem(false);
+          alert(uploadError?.message || 'Erro ao fazer upload da imagem. Tente novamente.');
+          return;
+        }
+      }
+
+      // Prepara os dados da receita
+      const dadosReceita = {
+        ...data,
+        ...(imagemUrl && { imagemUrl }),
+        // Se está editando e não há nova imagem, mantém a imagemUrl existente
+        ...(editandoId && !imagemSelecionada && { imagemUrl: receitas.find((r) => r.id === editandoId)?.imagemUrl }),
+      };
+
+      if (editandoId) {
+        await atualizarReceita(editandoId, dadosReceita);
+        setEditandoId(null);
+      } else {
+        await adicionarReceita(dadosReceita);
+      }
+
+      // Se tudo deu certo e há uma imagem antiga, deleta ela
+      if (editandoId && imagemSelecionada && imagemAntigaUrl) {
+        try {
+          await deletarImagemReceita(imagemAntigaUrl);
+        } catch (deleteError) {
+          console.error('Erro ao deletar imagem antiga:', deleteError);
+        }
+      }
+
+      reset({
+        ingredientes: [{ ingredienteId: '', quantidade: 0, unidade: 'g' }],
+      });
+      setImagemSelecionada(null);
+      setPreviewImagem(null);
+      setMostrarForm(false);
+    } catch (error) {
+      console.error('Erro ao salvar receita:', error);
+      alert('Erro ao salvar receita. Tente novamente.');
+    } finally {
+      setUploadingImagem(false);
+    }
   };
 
   const handleEdit = (receita: typeof receitas[0]) => {
@@ -71,9 +148,16 @@ export default function Receitas() {
     reset({
       nome: receita.nome,
       ingredientes: receita.ingredientes,
-      observacoes: receita.observacoes,
+      descricao: receita.descricao,
       porcoes: receita.porcoes,
     });
+    // Define preview da imagem existente se houver
+    if (receita.imagemUrl) {
+      setPreviewImagem(receita.imagemUrl);
+    } else {
+      setPreviewImagem(null);
+    }
+    setImagemSelecionada(null);
     setMostrarForm(true);
   };
 
@@ -82,6 +166,8 @@ export default function Receitas() {
     reset({
       ingredientes: [{ ingredienteId: '', quantidade: 0, unidade: 'g' }],
     });
+    setImagemSelecionada(null);
+    setPreviewImagem(null);
     setMostrarForm(false);
   };
 
@@ -233,13 +319,48 @@ export default function Receitas() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Observações (opcional)
+                Descrição (opcional)
               </label>
               <textarea
-                {...register('observacoes')}
+                {...register('descricao')}
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Descreva a receita, modo de preparo, dicas, etc."
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Imagem da Receita (opcional)
+              </label>
+              <div className="space-y-2">
+                {previewImagem && (
+                  <div className="relative inline-block">
+                    <img
+                      src={previewImagem}
+                      alt="Preview"
+                      className="h-32 w-32 object-cover rounded-md border border-gray-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={removerImagem}
+                      className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-700"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImagemChange}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                <p className="text-xs text-gray-500">
+                  Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 5MB
+                </p>
+              </div>
             </div>
 
             <div className="flex justify-end space-x-3">
@@ -252,10 +373,10 @@ export default function Receitas() {
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || uploadingImagem}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
-                {loading ? 'Salvando...' : editandoId ? 'Atualizar' : 'Salvar'}
+                {uploadingImagem ? 'Enviando imagem...' : loading ? 'Salvando...' : editandoId ? 'Atualizar' : 'Salvar'}
               </button>
             </div>
           </form>
@@ -270,69 +391,79 @@ export default function Receitas() {
         ) : (
           <ul className="divide-y divide-gray-200">
             {receitas.map((receita) => (
-              <li key={receita.id} id={`receita-${receita.id}`} className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center">
-                      <p className="text-sm font-medium text-gray-900">
-                        {receita.nome}
-                      </p>
-                    </div>
-                    <div className="mt-2 flex items-center text-sm text-gray-500">
-                      <span>
-                        {receita.ingredientes.length} ingrediente(s)
-                      </span>
-                      {receita.porcoes && receita.porcoes > 0 && (
-                        <>
-                          <span className="mx-2">•</span>
-                          <span>{receita.porcoes} porção(ões)</span>
-                        </>
-                      )}
-                    </div>
-                    {receitaDetalhes === receita.id && (
-                      <div className="mt-3 p-3 bg-gray-50 rounded-md">
-                        <p className="text-sm font-medium text-gray-700 mb-2">
-                          Ingredientes:
-                        </p>
-                        <ul className="space-y-1">
-                          {receita.ingredientes.map((ing, idx) => {
-                            const ingrediente = ingredientes.find((i) => i.id === ing.ingredienteId);
-                            return (
-                              <li key={idx} className="text-sm text-gray-600">
-                                {ingrediente?.nome || 'Ingrediente não encontrado'}: {ing.quantidade} {ing.unidade}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                        {receita.observacoes && (
-                          <p className="text-sm text-gray-600 mt-2">
-                            <span className="font-medium">Observações:</span> {receita.observacoes}
-                          </p>
-                        )}
+              <li key={receita.id} id={`receita-${receita.id}`} className="px-4 py-4 hover:bg-gray-50 transition-colors">
+                <div className="grid grid-cols-4 gap-4 items-start">
+                  {/* Coluna 1: Imagem */}
+                  <div className="flex flex-col items-center">
+                    {receita.imagemUrl ? (
+                      <img
+                        src={receita.imagemUrl}
+                        alt={receita.nome}
+                        className="w-full h-32 object-cover rounded-md border border-gray-300"
+                      />
+                    ) : (
+                      <div className="w-full h-32 bg-gray-200 rounded-md border border-gray-300 flex items-center justify-center">
+                        <span className="text-gray-400 text-4xl">🍰</span>
                       </div>
                     )}
+                    <p className="text-sm font-semibold text-gray-900 mt-2 text-center">
+                      {receita.nome}
+                    </p>
                   </div>
-                  <div className="ml-4 flex flex-col items-end space-y-2">
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">
+
+                  {/* Coluna 2: Descrição */}
+                  <div className="flex flex-col">
+                    <p className="text-xs font-medium text-gray-500 mb-2">Descrição:</p>
+                    {receita.descricao ? (
+                      <p className="text-sm text-gray-700 leading-relaxed break-words">
+                        {receita.descricao}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">Sem descrição</p>
+                    )}
+                  </div>
+
+                  {/* Coluna 3: Ingredientes */}
+                  <div className="flex flex-col">
+                    <p className="text-xs font-medium text-gray-500 mb-2">
+                      Ingredientes ({receita.ingredientes.length}):
+                    </p>
+                    <ul className="space-y-1">
+                      {receita.ingredientes.map((ing, idx) => {
+                        const ingrediente = ingredientes.find((i) => i.id === ing.ingredienteId);
+                        return (
+                          <li key={idx} className="text-sm text-gray-700">
+                            {ingrediente?.nome || 'Ingrediente não encontrado'}: {ing.quantidade} {ing.unidade}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {receita.porcoes && receita.porcoes > 0 && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        {receita.porcoes} porção(ões)
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Coluna 4: Custo e Botões */}
+                  <div className="flex flex-col items-end">
+                    <div className="mb-4">
+                      <p className="text-xs font-medium text-gray-500 mb-1">Custo:</p>
+                      <p className="text-lg font-bold text-gray-900">
                         {formatarMoeda(receita.custoTotal)}
                       </p>
                       {receita.porcoes && receita.porcoes > 0 && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm text-gray-600 mt-1">
                           {formatarMoeda(receita.custoTotal / receita.porcoes)}/porção
                         </p>
                       )}
                     </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setReceitaDetalhes(receitaDetalhes === receita.id ? null : receita.id)}
-                        className="text-blue-600 hover:text-blue-900 text-sm font-medium"
-                      >
-                        {receitaDetalhes === receita.id ? 'Ocultar' : 'Detalhes'}
-                      </button>
+
+                    {/* Botões */}
+                    <div className="flex flex-col gap-2 w-full">
                       <button
                         onClick={() => handleEdit(receita)}
-                        className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-2 rounded hover:bg-blue-50 transition-colors border border-blue-200"
                       >
                         Editar
                       </button>
@@ -342,7 +473,7 @@ export default function Receitas() {
                             deletarReceita(receita.id);
                           }
                         }}
-                        className="text-red-600 hover:text-red-900 text-sm font-medium"
+                        className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-2 rounded hover:bg-red-50 transition-colors border border-red-200"
                       >
                         Deletar
                       </button>

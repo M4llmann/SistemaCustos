@@ -22,10 +22,11 @@ export interface Receita {
   id: string;
   nome: string;
   ingredientes: IngredienteReceita[];
-  observacoes?: string;
+  descricao?: string;
   custoTotal: number; // Calculado automaticamente
   custoPorPorcao?: number; // Opcional
   porcoes?: number; // Número de porções (opcional)
+  imagemUrl?: string; // URL da imagem da receita
   userId: string;
   createdAt: Date;
   updatedAt: Date;
