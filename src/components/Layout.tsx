@@ -15,18 +15,18 @@ export default function Layout({ children }: LayoutProps) {
 
   const isActive = (path: string) => {
     return location.pathname === path
-      ? 'bg-blue-600 text-white'
-      : 'text-gray-700 hover:bg-gray-100';
+      ? 'bg-lime-600 text-white shadow-md'
+      : 'text-gray-700 hover:bg-lime-50';
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-rose-50 flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-lg fixed h-full">
+      <aside className="w-64 bg-white shadow-lg fixed h-full border-r-2 border-lime-200">
         <div className="flex flex-col h-full">
           {/* Logo/Header */}
-          <div className="p-6 border-b border-gray-200">
-            <h1 className="text-xl font-bold text-gray-900">
+          <div className="p-6 border-b border-lime-200 bg-gradient-to-r from-lime-50 to-amber-50">
+            <h1 className="text-xl font-bold text-lime-800">
               Sistema de Custos
             </h1>
           </div>
@@ -57,10 +57,10 @@ export default function Layout({ children }: LayoutProps) {
           </nav>
 
           {/* Logout Button */}
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-lime-200">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              className="w-full flex items-center px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-amber-50 transition-colors"
             >
               <span className="mr-3">🚪</span>
               Sair

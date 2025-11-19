@@ -57,7 +57,7 @@ export default function Ingredientes() {
     <div className="px-4 py-6 sm:px-0">
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Ingredientes</h2>
+          <h2 className="text-2xl font-bold text-lime-800">Ingredientes</h2>
           <p className="mt-1 text-sm text-gray-600">
             Cadastre e gerencie seus ingredientes
           </p>
@@ -65,7 +65,7 @@ export default function Ingredientes() {
         {!mostrarForm && (
           <button
             onClick={() => setMostrarForm(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            className="bg-lime-600 text-white px-4 py-2 rounded-md hover:bg-lime-700 font-semibold shadow-md transition-colors"
           >
             + Novo Ingrediente
           </button>
@@ -73,8 +73,8 @@ export default function Ingredientes() {
       </div>
 
       {mostrarForm && (
-        <div className="bg-white shadow-md rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-medium mb-4">
+        <div className="bg-white shadow-lg rounded-lg p-6 mb-6 border-l-4 border-lime-400">
+          <h3 className="text-lg font-bold text-lime-800 mb-4">
             {editandoId ? 'Editar Ingrediente' : 'Novo Ingrediente'}
           </h3>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -149,14 +149,14 @@ export default function Ingredientes() {
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-amber-50 font-semibold transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-lime-600 text-white rounded-md hover:bg-lime-700 disabled:opacity-50 font-semibold shadow-md transition-colors"
               >
                 {loading ? 'Salvando...' : editandoId ? 'Atualizar' : 'Salvar'}
               </button>
@@ -165,28 +165,28 @@ export default function Ingredientes() {
         </div>
       )}
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
+      <div className="bg-white shadow-lg overflow-hidden sm:rounded-md border border-lime-200">
         {ingredientes.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500">Nenhum ingrediente cadastrado ainda.</p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-200">
+          <ul className="divide-y divide-lime-100">
             {ingredientes.map((ingrediente) => (
-              <li key={ingrediente.id} className="px-4 py-4 sm:px-6">
+              <li key={ingrediente.id} className="px-4 py-4 sm:px-6 hover:bg-lime-50 transition-colors border-l-4 border-transparent hover:border-lime-400">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-bold text-lime-900">
                         {ingrediente.nome}
                       </p>
                     </div>
-                    <div className="mt-2 flex items-center text-sm text-gray-500">
-                      <span>
-                        {formatarMoeda(ingrediente.precoTotal)} / {ingrediente.medidaTotal} {ingrediente.unidadeBase}
+                    <div className="mt-2 flex items-center text-sm">
+                      <span className="text-lime-700">
+                        <span className="font-semibold">{formatarMoeda(ingrediente.precoTotal)}</span> / {ingrediente.medidaTotal} {ingrediente.unidadeBase}
                       </span>
-                      <span className="mx-2">•</span>
-                      <span className="font-medium text-gray-900">
+                      <span className="mx-2 text-lime-400">•</span>
+                      <span className="font-bold text-amber-900">
                         {formatarMoeda(ingrediente.precoPorUnidade)} / {ingrediente.unidadeBase}
                       </span>
                     </div>
@@ -194,7 +194,7 @@ export default function Ingredientes() {
                   <div className="ml-4 flex space-x-2">
                     <button
                       onClick={() => handleEdit(ingrediente)}
-                      className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                      className="text-lime-700 hover:text-lime-900 text-sm font-semibold bg-lime-50 hover:bg-lime-100 px-3 py-1 rounded-md transition-colors"
                     >
                       Editar
                     </button>
@@ -204,7 +204,7 @@ export default function Ingredientes() {
                           deletarIngrediente(ingrediente.id);
                         }
                       }}
-                      className="text-red-600 hover:text-red-900 text-sm font-medium"
+                      className="text-amber-700 hover:text-amber-900 text-sm font-semibold bg-amber-50 hover:bg-amber-100 px-3 py-1 rounded-md transition-colors"
                     >
                       Deletar
                     </button>
