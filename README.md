@@ -71,12 +71,24 @@ service cloud.firestore {
     match /ingredientes/{ingredienteId} {
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      
+      // Subcoleção de histórico de ingredientes
+      match /historico/{historicoId} {
+        allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      }
     }
     
     // Receitas
     match /receitas/{receitaId} {
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      
+      // Subcoleção de histórico de receitas
+      match /historico/{historicoId} {
+        allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      }
     }
   }
 }

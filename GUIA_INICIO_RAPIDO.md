@@ -52,12 +52,30 @@ service cloud.firestore {
     match /ingredientes/{ingredienteId} {
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      
+      // Subcoleção de histórico de ingredientes
+      match /historico/{historicoId} {
+        // Permite leitura se o usuário está autenticado e o documento tem userId correspondente
+        allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+        // Permite criação se o userId no documento corresponde ao usuário autenticado
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+        // Histórico é imutável - não permite update/delete
+      }
     }
     
     // Receitas
     match /receitas/{receitaId} {
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      
+      // Subcoleção de histórico de receitas
+      match /historico/{historicoId} {
+        // Permite leitura se o usuário está autenticado e o documento tem userId correspondente
+        allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+        // Permite criação se o userId no documento corresponde ao usuário autenticado
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+        // Histórico é imutável - não permite update/delete
+      }
     }
   }
 }

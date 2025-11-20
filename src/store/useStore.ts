@@ -5,6 +5,7 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -151,8 +152,15 @@ export const useStore = create<StoreState>((set, get) => ({
       // Salva histórico inicial do ingrediente
       const ingredienteSalvo = get().ingredientes.find((i) => i.id === docRef.id);
       if (ingredienteSalvo) {
-        await get().salvarHistoricoIngrediente(docRef.id, ingredienteSalvo);
+        try {
+          await get().salvarHistoricoIngrediente(docRef.id, ingredienteSalvo);
+          console.log('Histórico inicial salvo para ingrediente:', ingredienteSalvo.nome);
+        } catch (historicoError) {
+          console.error('Erro ao salvar histórico inicial:', historicoError);
+          // Não bloqueia a criação do ingrediente se o histórico falhar
+        }
       }
+      set({ loading: false });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
     }
@@ -176,11 +184,23 @@ export const useStore = create<StoreState>((set, get) => ({
       const medidaAtualNum = Number(ingredienteAtual.medidaTotal);
       const medidaNovaNum = dados.medidaTotal !== undefined ? Number(dados.medidaTotal) : medidaAtualNum;
       
+      // Verifica mudança considerando que dados pode ter precoTotal mesmo que seja o mesmo valor
       const precoMudou = dados.precoTotal !== undefined && 
                         Math.abs(precoNovoNum - precoAtualNum) > 0.0001;
       const medidaMudou = dados.medidaTotal !== undefined && 
                           Math.abs(medidaNovaNum - medidaAtualNum) > 0.0001;
       const deveSalvarHistorico = precoMudou || medidaMudou;
+      
+      console.log('Verificação de mudança:', {
+        precoAtual: precoAtualNum,
+        precoNovo: precoNovoNum,
+        precoMudou,
+        medidaAtual: medidaAtualNum,
+        medidaNova: medidaNovaNum,
+        medidaMudou,
+        deveSalvarHistorico,
+        dadosRecebidos: dados
+      });
 
       const precoPorUnidade = calcularPrecoPorUnidade(
         precoTotal,
@@ -206,14 +226,23 @@ export const useStore = create<StoreState>((set, get) => ({
         const ingredienteAtualizado = get().ingredientes.find((i) => i.id === id);
         if (ingredienteAtualizado) {
           try {
+            console.log('Tentando salvar histórico para:', ingredienteAtualizado.nome);
             await get().salvarHistoricoIngrediente(id, ingredienteAtualizado);
-            console.log('Histórico salvo para ingrediente:', ingredienteAtualizado.nome);
-          } catch (error) {
-            console.error('Erro ao salvar histórico:', error);
+            console.log('✅ Histórico salvo com sucesso para:', ingredienteAtualizado.nome);
+          } catch (historicoError: any) {
+            console.error('❌ Erro ao salvar histórico:', historicoError);
+            console.error('Detalhes do erro:', {
+              code: historicoError?.code,
+              message: historicoError?.message,
+              stack: historicoError?.stack
+            });
+            // Não bloqueia a atualização se o histórico falhar
           }
+        } else {
+          console.error('Ingrediente atualizado não encontrado após recarregar');
         }
       } else {
-        console.log('Histórico não salvo - preço não mudou', {
+        console.log('ℹ️ Histórico não salvo - preço/medida não mudou significativamente', {
           precoAtual: ingredienteAtual.precoTotal,
           precoNovo: dados.precoTotal,
           medidaAtual: ingredienteAtual.medidaTotal,
@@ -356,11 +385,31 @@ export const useStore = create<StoreState>((set, get) => ({
   salvarHistoricoIngrediente: async (ingredienteId, ingrediente) => {
     const { userId } = get();
     if (!userId) {
-      console.error('userId não encontrado ao salvar histórico');
+      console.error('❌ userId não encontrado ao salvar histórico');
       return;
     }
 
     try {
+      // Verifica se o ingrediente pertence ao usuário antes de salvar histórico
+      const ingredienteRef = doc(db, 'ingredientes', ingredienteId);
+      const ingredienteDoc = await getDoc(ingredienteRef);
+      
+      if (!ingredienteDoc.exists()) {
+        console.error('❌ Ingrediente não existe:', ingredienteId);
+        throw new Error('Ingrediente não encontrado');
+      }
+      
+      const ingredienteData = ingredienteDoc.data();
+      if (ingredienteData?.userId !== userId) {
+        console.error('❌ Ingrediente não pertence ao usuário:', {
+          ingredienteUserId: ingredienteData?.userId,
+          currentUserId: userId
+        });
+        throw new Error('Ingrediente não pertence ao usuário');
+      }
+      
+      console.log('✅ Ingrediente verificado, pode salvar histórico');
+      
       const historicoRef = collection(db, 'ingredientes', ingredienteId, 'historico');
       const dadosHistorico = {
         nome: ingrediente.nome,
@@ -371,11 +420,11 @@ export const useStore = create<StoreState>((set, get) => ({
         data: Timestamp.now(),
         userId,
       };
-      console.log('Salvando histórico do ingrediente:', ingredienteId, dadosHistorico);
+      console.log('💾 Salvando histórico do ingrediente:', ingredienteId, dadosHistorico);
       await addDoc(historicoRef, dadosHistorico);
-      console.log('Histórico salvo com sucesso!');
+      console.log('✅ Histórico salvo com sucesso!');
     } catch (error) {
-      console.error('Erro ao salvar histórico do ingrediente:', error);
+      console.error('❌ Erro ao salvar histórico do ingrediente:', error);
       throw error;
     }
   },
@@ -383,31 +432,52 @@ export const useStore = create<StoreState>((set, get) => ({
   buscarHistoricoIngrediente: async (ingredienteId) => {
     const { userId } = get();
     if (!userId) {
-      console.error('userId não encontrado ao buscar histórico');
+      console.error('❌ userId não encontrado ao buscar histórico');
       return [];
     }
 
     try {
-      const historicoRef = collection(db, 'ingredientes', ingredienteId, 'historico');
-      console.log('Buscando histórico em:', `ingredientes/${ingredienteId}/historico`);
+      // Primeiro verifica se o ingrediente existe e pertence ao usuário
+      const ingredienteRef = doc(db, 'ingredientes', ingredienteId);
+      const ingredienteDoc = await getDoc(ingredienteRef);
       
-      // Tenta buscar com orderBy primeiro
-      let q;
-      try {
-        q = query(historicoRef, where('userId', '==', userId), orderBy('data', 'desc'));
-      } catch (orderByError) {
-        // Se orderBy falhar (pode precisar de índice), tenta sem orderBy
-        console.warn('Erro com orderBy, tentando sem ordenação:', orderByError);
-        q = query(historicoRef, where('userId', '==', userId));
+      if (!ingredienteDoc.exists()) {
+        console.error('❌ Ingrediente não existe:', ingredienteId);
+        return [];
       }
       
+      const ingredienteData = ingredienteDoc.data();
+      if (ingredienteData?.userId !== userId) {
+        console.error('❌ Ingrediente não pertence ao usuário:', {
+          ingredienteUserId: ingredienteData?.userId,
+          currentUserId: userId
+        });
+        return [];
+      }
+      
+      console.log('✅ Ingrediente verificado, pertence ao usuário');
+      
+      const historicoRef = collection(db, 'ingredientes', ingredienteId, 'historico');
+      console.log('🔍 Buscando histórico em:', `ingredientes/${ingredienteId}/historico`);
+      console.log('👤 userId:', userId);
+      
+      // Busca sem orderBy para evitar problemas com regras do Firestore
+      // O orderBy pode causar problemas na avaliação das regras de segurança
+      const q = query(historicoRef, where('userId', '==', userId));
+      console.log('📋 Query criada sem orderBy');
+      
       const querySnapshot = await getDocs(q);
-      console.log('Documentos encontrados:', querySnapshot.size);
+      console.log('📄 Documentos encontrados:', querySnapshot.size);
+      
+      if (querySnapshot.empty) {
+        console.log('ℹ️ Nenhum documento encontrado na subcoleção historico - histórico vazio');
+      }
       
       const historico: HistoricoIngrediente[] = [];
 
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        console.log('📝 Processando documento histórico:', docSnap.id, data);
         historico.push({
           id: docSnap.id,
           ...data,
@@ -418,12 +488,19 @@ export const useStore = create<StoreState>((set, get) => ({
       // Ordena manualmente se não usou orderBy
       historico.sort((a, b) => b.data.getTime() - a.data.getTime());
 
-      console.log('Histórico processado:', historico.length, 'itens');
+      console.log('✅ Histórico processado:', historico.length, 'itens');
       return historico;
     } catch (error: any) {
-      console.error('Erro ao buscar histórico do ingrediente:', error);
+      console.error('❌ Erro ao buscar histórico do ingrediente:', error);
+      console.error('Detalhes:', {
+        code: error?.code,
+        message: error?.message,
+        stack: error?.stack
+      });
       if (error.code === 'failed-precondition') {
-        console.error('Índice necessário no Firestore. Crie um índice composto para: ingredientes/{ingredienteId}/historico com campos: userId (Ascending) e data (Descending)');
+        console.error('⚠️ Índice necessário no Firestore. Crie um índice composto para: ingredientes/{ingredienteId}/historico com campos: userId (Ascending) e data (Descending)');
+      } else if (error.code === 'permission-denied') {
+        console.error('⚠️ Permissão negada. Verifique as regras do Firestore para a subcoleção historico');
       }
       return [];
     }
@@ -432,11 +509,31 @@ export const useStore = create<StoreState>((set, get) => ({
   salvarHistoricoReceita: async (receitaId, receita) => {
     const { userId } = get();
     if (!userId) {
-      console.error('userId não encontrado ao salvar histórico');
+      console.error('❌ userId não encontrado ao salvar histórico');
       return;
     }
 
     try {
+      // Verifica se a receita pertence ao usuário antes de salvar histórico
+      const receitaRef = doc(db, 'receitas', receitaId);
+      const receitaDoc = await getDoc(receitaRef);
+      
+      if (!receitaDoc.exists()) {
+        console.error('❌ Receita não existe:', receitaId);
+        throw new Error('Receita não encontrada');
+      }
+      
+      const receitaData = receitaDoc.data();
+      if (receitaData?.userId !== userId) {
+        console.error('❌ Receita não pertence ao usuário:', {
+          receitaUserId: receitaData?.userId,
+          currentUserId: userId
+        });
+        throw new Error('Receita não pertence ao usuário');
+      }
+      
+      console.log('✅ Receita verificada, pode salvar histórico');
+      
       const historicoRef = collection(db, 'receitas', receitaId, 'historico');
       const precoSugerido = receita.custoTotal * ((receita.margemLucro || 250) / 100);
       
@@ -448,11 +545,11 @@ export const useStore = create<StoreState>((set, get) => ({
         data: Timestamp.now(),
         userId,
       };
-      console.log('Salvando histórico da receita:', receitaId, dadosHistorico);
+      console.log('💾 Salvando histórico da receita:', receitaId, dadosHistorico);
       await addDoc(historicoRef, dadosHistorico);
-      console.log('Histórico salvo com sucesso!');
+      console.log('✅ Histórico salvo com sucesso!');
     } catch (error) {
-      console.error('Erro ao salvar histórico da receita:', error);
+      console.error('❌ Erro ao salvar histórico da receita:', error);
       throw error;
     }
   },
@@ -460,31 +557,52 @@ export const useStore = create<StoreState>((set, get) => ({
   buscarHistoricoReceita: async (receitaId) => {
     const { userId } = get();
     if (!userId) {
-      console.error('userId não encontrado ao buscar histórico');
+      console.error('❌ userId não encontrado ao buscar histórico');
       return [];
     }
 
     try {
-      const historicoRef = collection(db, 'receitas', receitaId, 'historico');
-      console.log('Buscando histórico em:', `receitas/${receitaId}/historico`);
+      // Primeiro verifica se a receita existe e pertence ao usuário
+      const receitaRef = doc(db, 'receitas', receitaId);
+      const receitaDoc = await getDoc(receitaRef);
       
-      // Tenta buscar com orderBy primeiro
-      let q;
-      try {
-        q = query(historicoRef, where('userId', '==', userId), orderBy('data', 'desc'));
-      } catch (orderByError) {
-        // Se orderBy falhar (pode precisar de índice), tenta sem orderBy
-        console.warn('Erro com orderBy, tentando sem ordenação:', orderByError);
-        q = query(historicoRef, where('userId', '==', userId));
+      if (!receitaDoc.exists()) {
+        console.error('❌ Receita não existe:', receitaId);
+        return [];
       }
       
+      const receitaData = receitaDoc.data();
+      if (receitaData?.userId !== userId) {
+        console.error('❌ Receita não pertence ao usuário:', {
+          receitaUserId: receitaData?.userId,
+          currentUserId: userId
+        });
+        return [];
+      }
+      
+      console.log('✅ Receita verificada, pertence ao usuário');
+      
+      const historicoRef = collection(db, 'receitas', receitaId, 'historico');
+      console.log('🔍 Buscando histórico em:', `receitas/${receitaId}/historico`);
+      console.log('👤 userId:', userId);
+      
+      // Busca sem orderBy para evitar problemas com regras do Firestore
+      // O orderBy pode causar problemas na avaliação das regras de segurança
+      const q = query(historicoRef, where('userId', '==', userId));
+      console.log('📋 Query criada sem orderBy');
+      
       const querySnapshot = await getDocs(q);
-      console.log('Documentos encontrados:', querySnapshot.size);
+      console.log('📄 Documentos encontrados:', querySnapshot.size);
+      
+      if (querySnapshot.empty) {
+        console.log('ℹ️ Nenhum documento encontrado na subcoleção historico - histórico vazio');
+      }
       
       const historico: HistoricoReceita[] = [];
 
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
+        console.log('📝 Processando documento histórico:', docSnap.id, data);
         historico.push({
           id: docSnap.id,
           ...data,
@@ -495,12 +613,19 @@ export const useStore = create<StoreState>((set, get) => ({
       // Ordena manualmente se não usou orderBy
       historico.sort((a, b) => b.data.getTime() - a.data.getTime());
 
-      console.log('Histórico processado:', historico.length, 'itens');
+      console.log('✅ Histórico processado:', historico.length, 'itens');
       return historico;
     } catch (error: any) {
-      console.error('Erro ao buscar histórico da receita:', error);
+      console.error('❌ Erro ao buscar histórico da receita:', error);
+      console.error('Detalhes:', {
+        code: error?.code,
+        message: error?.message,
+        stack: error?.stack
+      });
       if (error.code === 'failed-precondition') {
-        console.error('Índice necessário no Firestore. Crie um índice composto para: receitas/{receitaId}/historico com campos: userId (Ascending) e data (Descending)');
+        console.error('⚠️ Índice necessário no Firestore. Crie um índice composto para: receitas/{receitaId}/historico com campos: userId (Ascending) e data (Descending)');
+      } else if (error.code === 'permission-denied') {
+        console.error('⚠️ Permissão negada. Verifique as regras do Firestore para a subcoleção historico');
       }
       return [];
     }
