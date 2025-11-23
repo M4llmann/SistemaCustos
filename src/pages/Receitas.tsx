@@ -34,6 +34,7 @@ export default function Receitas() {
   const [mostrarHistorico, setMostrarHistorico] = useState(false);
   const [historicoReceita, setHistoricoReceita] = useState<HistoricoReceita[]>([]);
   const [receitaHistorico, setReceitaHistorico] = useState<{ id: string; nome: string } | null>(null);
+  const [receitaDetalhes, setReceitaDetalhes] = useState<typeof receitas[0] | null>(null); // Receita com detalhes abertos
   const fileInputRef = useRef<HTMLInputElement>(null);
   const buscarHistoricoReceita = useStore((state) => state.buscarHistoricoReceita);
 
@@ -50,6 +51,18 @@ export default function Receitas() {
       }, 100);
     }
   }, [location.state]);
+
+  // Bloqueia scroll quando modal de detalhes está aberto
+  useEffect(() => {
+    if (receitaDetalhes) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [receitaDetalhes]);
 
   const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<FormData>({
     defaultValues: {
@@ -483,7 +496,8 @@ export default function Receitas() {
         </div>
       )}
 
-      <div className="bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden rounded-2xl border border-rose-100">
+      {/* Grid de Cards Quadrados */}
+      <div className="bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden rounded-2xl border border-rose-100 p-6">
         {receitas.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-gray-400 font-medium">Nenhuma receita cadastrada ainda.</p>
@@ -493,131 +507,204 @@ export default function Receitas() {
             <p className="text-gray-400 font-medium">Nenhuma receita encontrada com "{termoBusca}".</p>
           </div>
         ) : (
-          <ul className="divide-y divide-rose-50">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {receitasFiltradas.map((receita) => (
-              <li key={receita.id} id={`receita-${receita.id}`} className="px-6 py-5 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 transition-all duration-200 border-l-4 border-transparent hover:border-rose-400">
-                <div className="grid grid-cols-[160px_2fr_1fr_280px] gap-5 items-stretch">
-                  {/* Coluna 1: Imagem */}
-                  <div className="flex items-center justify-center">
-                    {receita.imagemUrl ? (
-                      <img
-                        src={receita.imagemUrl}
-                        alt={receita.nome}
-                        className="w-40 h-40 object-cover rounded-xl border-2 border-rose-200 shadow-lg"
-                      />
-                    ) : (
-                      <div className="w-40 h-40 bg-gradient-to-br from-rose-100 to-pink-100 rounded-xl border-2 border-rose-200 flex items-center justify-center shadow-lg">
-                        <span className="text-rose-400 text-4xl">🍰</span>
-                      </div>
-                    )}
+              <div
+                key={receita.id}
+                id={`receita-${receita.id}`}
+                className="bg-white rounded-xl shadow-md border border-rose-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-105 flex flex-col"
+              >
+                {/* Imagem - Menor */}
+                <div className="w-full h-32 relative overflow-hidden bg-gradient-to-br from-rose-100 to-pink-100">
+                  {receita.imagemUrl ? (
+                    <img
+                      src={receita.imagemUrl}
+                      alt={receita.nome}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="text-rose-400 text-3xl">🍰</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Conteúdo do Card */}
+                <div className="p-2.5 flex-1 flex flex-col">
+                  {/* Nome - Menor */}
+                  <h3 className="text-sm font-bold text-rose-700 mb-2 text-center line-clamp-2 min-h-[2.5rem]">
+                    {receita.nome}
+                  </h3>
+
+                  {/* Custo e Preço Sugerido - Compactos */}
+                  <div className="flex gap-2 mb-2.5">
+                    {/* Bloco Custo - Menor */}
+                    <div className="flex-1 bg-gradient-to-r from-rose-50 to-pink-50 rounded-lg p-2 border border-rose-200 min-h-[60px] flex flex-col justify-between">
+                      <p className="text-[10px] text-rose-600 font-semibold mb-0.5">Custo:</p>
+                      <p className="text-sm font-bold text-rose-700 leading-tight">
+                        {formatarMoeda(receita.custoTotal)}
+                      </p>
+                      <div className="h-2"></div>
+                    </div>
+                    
+                    {/* Bloco Preço Sugerido - Menor */}
+                    <div className="flex-1 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-2 border border-purple-200 min-h-[60px] flex flex-col justify-between">
+                      <p className="text-[10px] text-purple-600 font-semibold mb-0.5">Preço:</p>
+                      <p className="text-sm font-bold text-purple-700 leading-tight">
+                        {formatarMoeda(receita.custoTotal * ((receita.margemLucro || 250) / 100))}
+                      </p>
+                      <div className="h-2"></div>
+                    </div>
                   </div>
 
-                  {/* Coluna 2: Nome e Descrição */}
-                  <div className="flex flex-col bg-gradient-to-br from-rose-50/80 to-pink-50/80 rounded-xl p-4 border border-rose-100">
-                    <p className="text-lg font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                      {receita.nome}
-                    </p>
-                    <p className="text-xs font-semibold text-rose-500 mb-1.5">Descrição:</p>
-                    {receita.descricao ? (
-                      <p className="text-sm text-gray-700 leading-relaxed break-words overflow-y-auto flex-1">
-                        {receita.descricao}
+                  {/* Botão Ver Detalhes - Menor */}
+                  <button
+                    onClick={() => setReceitaDetalhes(receita)}
+                    className="w-full bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white py-1.5 rounded-lg hover:from-rose-600 hover:via-pink-600 hover:to-purple-600 font-semibold shadow-sm hover:shadow-md transition-all duration-200 text-xs"
+                  >
+                    Ver Detalhes
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Modal de Detalhes da Receita */}
+      {receitaDetalhes && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setReceitaDetalhes(null);
+            }
+          }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-[50%] max-h-[90vh] overflow-hidden flex flex-col mx-4">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-rose-500 to-pink-500 text-white p-6 relative">
+              <div className="flex justify-between items-start">
+                <div className="flex-1 pr-8">
+                  <h2 className="text-2xl font-bold mb-1">{receitaDetalhes.nome}</h2>
+                  <div className="flex gap-4 mt-3">
+                    <div>
+                      <p className="text-xs text-rose-100 mb-1">Custo:</p>
+                      <p className="text-lg font-bold">
+                        {formatarMoeda(receitaDetalhes.custoTotal)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-rose-100 mb-1">Preço Sugerido:</p>
+                      <p className="text-lg font-bold">
+                        {formatarMoeda(receitaDetalhes.custoTotal * ((receitaDetalhes.margemLucro || 250) / 100))}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setReceitaDetalhes(null)}
+                  className="text-white hover:text-rose-100 transition-colors text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 flex-shrink-0"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Layout: Imagem/Descrição à esquerda, Ingredientes à direita */}
+              <div className="flex gap-4 items-start">
+                {/* Lado Esquerdo: Imagem e Descrição */}
+                <div className="w-1/4 flex-shrink-0 flex flex-col gap-4">
+                  {/* Imagem */}
+                  {receitaDetalhes.imagemUrl && (
+                    <div className="w-full aspect-square rounded-xl overflow-hidden border-2 border-rose-200 bg-gradient-to-br from-rose-100 to-pink-100">
+                      <img
+                        src={receitaDetalhes.imagemUrl}
+                        alt={receitaDetalhes.nome}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+
+                  {/* Descrição abaixo da imagem */}
+                  <div>
+                    <p className="text-sm font-semibold text-rose-600 mb-2">Descrição:</p>
+                    {receitaDetalhes.descricao ? (
+                      <p className="text-sm text-gray-700 leading-relaxed bg-rose-50 rounded-lg p-3 border border-rose-100">
+                        {receitaDetalhes.descricao}
                       </p>
                     ) : (
-                      <p className="text-sm text-gray-400 italic flex-1">Sem descrição</p>
+                      <p className="text-sm text-gray-400 italic bg-rose-50 rounded-lg p-3 border border-rose-100">
+                        Sem descrição
+                      </p>
                     )}
                   </div>
+                </div>
 
-                  {/* Coluna 3: Ingredientes */}
-                  <div className="flex flex-col bg-gradient-to-br from-purple-50/80 to-pink-50/80 rounded-xl p-4 border border-purple-100">
-                    <p className="text-xs font-semibold text-purple-600 mb-2">
-                      Ingredientes (<span className="font-bold text-purple-700">{receita.ingredientes.length}</span>):
-                    </p>
-                    <ul className="grid grid-cols-2 gap-x-4 gap-y-1 flex-1">
-                      {receita.ingredientes.map((ing, idx) => {
+                {/* Lado Direito: Ingredientes - Centralizados */}
+                <div className="flex-1 flex flex-col items-center">
+                  <p className="text-sm font-semibold text-purple-600 mb-2">
+                    Ingredientes ({receitaDetalhes.ingredientes.length}):
+                  </p>
+                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-100 max-h-[calc(90vh-300px)] overflow-y-auto w-full">
+                    <ul className="space-y-2">
+                      {receitaDetalhes.ingredientes.map((ing, idx) => {
                         const ingrediente = ingredientes.find((i) => i.id === ing.ingredienteId);
                         return (
-                          <li key={idx} className="text-sm text-gray-700">
-                            <span className="font-medium text-purple-700">{ingrediente?.nome || 'Ingrediente não encontrado'}</span>: <span className="font-bold text-purple-800">{ing.quantidade}</span> <span className="text-gray-600">{ing.unidade}</span>
+                          <li key={idx} className="text-sm text-gray-700 flex items-center justify-center gap-2">
+                            <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
+                            <span className="font-medium text-purple-700">
+                              {ingrediente?.nome || 'Ingrediente não encontrado'}
+                            </span>
+                            <span className="text-gray-500">:</span>
+                            <span className="font-bold text-purple-800">{ing.quantidade}</span>
+                            <span className="text-gray-600">{ing.unidade}</span>
                           </li>
                         );
                       })}
                     </ul>
-                    {receita.porcoes && receita.porcoes > 0 && (
-                      <p className="text-xs text-purple-600 mt-2">
-                        <span className="font-bold text-purple-700">{receita.porcoes}</span> porção(ões)
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Coluna 4: Custo, Preço Sugerido e Botões */}
-                  <div className="flex flex-col w-[280px] h-full">
-                    {/* Custo e Preço Sugerido */}
-                    <div className="flex justify-between items-stretch mb-4 gap-2">
-                      {/* Custo à esquerda */}
-                      <div className="bg-gradient-to-br from-rose-100 to-rose-50 rounded-xl p-3 w-[130px] flex flex-col justify-between min-h-[80px] border border-rose-200 shadow-sm">
-                        <div>
-                          <p className="text-xs font-semibold text-rose-600 mb-1">Custo Unitário:</p>
-                          <p className="text-xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
-                            {formatarMoeda(receita.custoTotal)}
-                          </p>
-                        </div>
-                        {receita.porcoes && receita.porcoes > 0 ? (
-                          <p className="text-xs text-rose-600 mt-1">
-                            <span className="font-bold">{formatarMoeda(receita.custoTotal / receita.porcoes)}</span>/porção
-                          </p>
-                        ) : (
-                          <div className="mt-1"></div>
-                        )}
-                      </div>
-
-                      {/* Preço Sugerido */}
-                      <div className="bg-gradient-to-br from-purple-100 to-purple-50 rounded-xl p-3 w-[130px] flex flex-col justify-between min-h-[80px] border border-purple-200 shadow-sm">
-                        <div>
-                          <p className="text-xs font-semibold text-purple-600 mb-1">
-                            Preço Sugerido: <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                              {formatarMoeda(receita.custoTotal * ((receita.margemLucro || 250) / 100))}
-                            </span>
-                          </p>
-                          <p className="text-[10px] text-purple-500 mt-0.5">
-                            ({receita.margemLucro || 250}% margem)
-                          </p>
-                        </div>
-                        <div className="mt-1"></div>
-                      </div>
-                    </div>
-
-                    {/* Botões */}
-                    <div className="flex gap-2 w-full">
-                      <button
-                        onClick={() => handleEdit(receita)}
-                        className="text-white bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-sm font-semibold px-3 py-2 rounded-xl transition-all duration-200 shadow-md shadow-rose-200/50 hover:shadow-lg flex-1"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleAbrirHistorico(receita)}
-                        className="text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-sm font-semibold px-3 py-2 rounded-xl transition-all duration-200 shadow-md shadow-purple-200/50 hover:shadow-lg flex-1"
-                      >
-                        Histórico
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('Tem certeza que deseja deletar esta receita?')) {
-                            deletarReceita(receita.id);
-                          }
-                        }}
-                        className="text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-sm font-semibold px-3 py-2 rounded-xl transition-all duration-200 shadow-md shadow-red-200/50 hover:shadow-lg flex-1"
-                      >
-                        Deletar
-                      </button>
-                    </div>
                   </div>
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+              </div>
+            </div>
+
+            {/* Footer com Botões de Ação */}
+            <div className="border-t border-rose-200 p-4 bg-rose-50 flex gap-3">
+              <button
+                onClick={() => {
+                  handleEdit(receitaDetalhes);
+                  setReceitaDetalhes(null);
+                }}
+                className="flex-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white py-2.5 rounded-xl hover:from-rose-600 hover:to-pink-600 font-semibold shadow-md shadow-rose-200/50 hover:shadow-lg transition-all duration-200"
+              >
+                Editar
+              </button>
+              <button
+                onClick={() => {
+                  handleAbrirHistorico(receitaDetalhes);
+                  setReceitaDetalhes(null);
+                }}
+                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2.5 rounded-xl hover:from-purple-600 hover:to-pink-600 font-semibold shadow-md shadow-purple-200/50 hover:shadow-lg transition-all duration-200"
+              >
+                Histórico
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm('Tem certeza que deseja deletar esta receita?')) {
+                    deletarReceita(receitaDetalhes.id);
+                    setReceitaDetalhes(null);
+                  }
+                }}
+                className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2.5 rounded-xl hover:from-red-600 hover:to-red-700 font-semibold shadow-md shadow-red-200/50 hover:shadow-lg transition-all duration-200"
+              >
+                Deletar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {mostrarHistorico && receitaHistorico && (
         <ModalHistorico
