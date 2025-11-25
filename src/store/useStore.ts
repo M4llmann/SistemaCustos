@@ -11,9 +11,6 @@ import {
   deleteDoc,
   doc,
   Timestamp,
-  onSnapshot,
-  orderBy,
-  limit,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { calcularPrecoPorUnidade } from '../utils/calculos';

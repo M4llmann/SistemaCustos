@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { HistoricoIngrediente, HistoricoReceita } from '../types';
 import { formatarMoeda } from '../utils/calculos';
 

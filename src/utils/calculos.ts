@@ -6,7 +6,7 @@ import { Ingrediente, UnidadeMedida } from '../types';
 export function calcularPrecoPorUnidade(
   precoTotal: number,
   medidaTotal: number,
-  unidadeBase: UnidadeMedida
+  _unidadeBase: UnidadeMedida
 ): number {
   if (medidaTotal <= 0) return 0;
   return precoTotal / medidaTotal;
