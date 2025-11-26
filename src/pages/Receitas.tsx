@@ -7,6 +7,7 @@ import { formatarMoeda, calcularCustoIngrediente } from '../utils/calculos';
 import { uploadImagemReceita, deletarImagemReceita } from '../utils/storage';
 import { auth } from '../config/firebase';
 import ModalHistorico from '../components/ModalHistorico';
+import AutocompleteIngrediente from '../components/AutocompleteIngrediente';
 
 interface FormData {
   nome: string;
@@ -64,7 +65,7 @@ export default function Receitas() {
     };
   }, [receitaDetalhes]);
 
-  const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, control, reset, watch, setValue, formState: { errors } } = useForm<FormData>({
     defaultValues: {
       ingredientes: [{ ingredienteId: '', quantidade: 0, unidade: 'g' }],
       margemLucro: 250,
@@ -311,19 +312,21 @@ export default function Receitas() {
               </label>
               {fields.map((field, index) => (
                 <div key={field.id} className="flex gap-2 mb-2">
-                  <select
-                    {...register(`ingredientes.${index}.ingredienteId`, {
-                      required: 'Selecione um ingrediente',
-                    })}
-                    className="flex-1 px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
-                  >
-                    <option value="">Selecione...</option>
-                    {ingredientes.map((ing) => (
-                      <option key={ing.id} value={ing.id}>
-                        {ing.nome}
-                      </option>
-                    ))}
-                  </select>
+                  <AutocompleteIngrediente
+                    ingredientes={ingredientes}
+                    value={watch(`ingredientes.${index}.ingredienteId`) || ''}
+                    onChange={(ingredienteId) => {
+                      setValue(`ingredientes.${index}.ingredienteId`, ingredienteId, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      });
+                    }}
+                    onBlur={() => {
+                      // Validation será feita automaticamente pelo react-hook-form
+                    }}
+                    error={errors.ingredientes?.[index]?.ingredienteId?.message}
+                    required
+                  />
                   <input
                     type="number"
                     step="0.01"
