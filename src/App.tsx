@@ -40,7 +40,8 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/ingredientes" element={<Ingredientes />} />
-          <Route path="/receitas" element={<Receitas />} />
+          <Route path="/receitas" element={<Navigate to="/receitas/bolos" replace />} />
+          <Route path="/receitas/:tipo" element={<Receitas />} />
         </Routes>
       </Layout>
     </Router>

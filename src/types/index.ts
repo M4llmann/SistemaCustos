@@ -18,16 +18,34 @@ export interface IngredienteReceita {
   unidade: UnidadeMedida;
 }
 
+export interface RecheioReceita {
+  recheioId: string;
+  quantidade: number; // peso utilizado
+  unidade: UnidadeMedida;
+}
+
+export type TipoReceita = 'recheio' | 'bolo' | 'sobremesa';
+
+export const ROTA_PARA_TIPO_RECEITA: Record<TipoReceita, string> = {
+  recheio: 'recheios',
+  bolo: 'bolos',
+  sobremesa: 'sobremesas',
+};
+
 export interface Receita {
   id: string;
   nome: string;
+  tipo?: TipoReceita; // recheio, bolo ou sobremesa (padrão: bolo para compatibilidade)
   ingredientes: IngredienteReceita[];
+  recheios?: RecheioReceita[]; // recheios/caldas do bolo (cada um com peso) — entra no custo total
   descricao?: string;
-  custoTotal: number; // Calculado automaticamente
+  custoTotal: number; // Calculado automaticamente (ingredientes + recheios quando for bolo)
   custoPorPorcao?: number; // Opcional
   porcoes?: number; // Número de porções (opcional)
   imagemUrl?: string; // URL da imagem da receita
   margemLucro?: number; // Porcentagem de margem de lucro (padrão 150%)
+  unidadePadrao?: UnidadeMedida; // para recheios: unidade sugerida ao usar em bolos (ex: g)
+  rendimentoGramas?: number; // para recheios: rendimento total em gramas (para custo por peso)
   userId: string;
   createdAt: Date;
   updatedAt: Date;

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { formatarMoeda } from '../utils/calculos';
+import { ROTA_PARA_TIPO_RECEITA } from '../types';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -73,7 +74,7 @@ export default function Dashboard() {
               {receitas.slice(0, 5).map((receita) => (
                 <li 
                   key={receita.id}
-                  onClick={() => navigate('/receitas', { state: { receitaId: receita.id } })}
+                  onClick={() => navigate(`/receitas/${ROTA_PARA_TIPO_RECEITA[receita.tipo ?? 'bolo']}`, { state: { receitaId: receita.id } })}
                   className="cursor-pointer hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 transition-all duration-200 border-l-4 border-transparent hover:border-rose-400 hover:shadow-md"
                 >
                   <div className="px-6 py-5 flex justify-between items-center">

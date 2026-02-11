@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { calcularPrecoPorUnidade } from '../utils/calculos';
-import { calcularCustoReceita } from '../services/receitasService';
+import { calcularCustoReceita, calcularCustoRecheios } from '../services/receitasService';
 
 interface StoreState {
   ingredientes: Ingrediente[];
@@ -106,15 +106,24 @@ export const useStore = create<StoreState>((set, get) => ({
           receitaData.descricao = data.observacoes;
           delete receitaData.observacoes;
         }
-        
+        // Migração: recheioId ou recheioIds -> recheios (lista com peso)
+        if (!data.recheios?.length && (data.recheioId || data.recheioIds?.length)) {
+          const id = data.recheioId || data.recheioIds[0];
+          receitaData.recheios = [{ recheioId: id, quantidade: 1, unidade: 'g' }];
+        }
         receitas.push(receitaData as Receita);
       });
 
-      // Recalcula custos das receitas
+      // Recalcula custos: 1) ingredientes; 2) para bolos com recheios, soma custo dos recheios
       const ingredientes = get().ingredientes;
-      const receitasComCusto = receitas.map((receita) => {
+      let receitasComCusto = receitas.map((receita) => {
         const custoTotal = calcularCustoReceita(receita, ingredientes);
         return { ...receita, custoTotal };
+      });
+      receitasComCusto = receitasComCusto.map((receita) => {
+        if (!receita.recheios?.length) return receita;
+        const custoRecheios = calcularCustoRecheios(receita.recheios, receitasComCusto);
+        return { ...receita, custoTotal: receita.custoTotal + custoRecheios };
       });
 
       set({ receitas: receitasComCusto, loading: false });
@@ -271,10 +280,12 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const ingredientes = get().ingredientes;
-      const custoTotal = calcularCustoReceita(
-        { ...dados, id: '', custoTotal: 0, userId: '', createdAt: new Date(), updatedAt: new Date() },
-        ingredientes
-      );
+      const receitas = get().receitas;
+      const receitaParaCusto = { ...dados, id: '', custoTotal: 0, userId: '', createdAt: new Date(), updatedAt: new Date() };
+      let custoTotal = calcularCustoReceita(receitaParaCusto, ingredientes);
+      if (dados.recheios?.length) {
+        custoTotal += calcularCustoRecheios(dados.recheios, receitas);
+      }
 
       const novaReceita = {
         ...dados,
@@ -307,7 +318,11 @@ export const useStore = create<StoreState>((set, get) => ({
       if (!receitaAtual) throw new Error('Receita não encontrada');
 
       const receitaAtualizada = { ...receitaAtual, ...dados };
-      const custoTotal = calcularCustoReceita(receitaAtualizada, ingredientes);
+      const receitas = get().receitas;
+      let custoTotal = calcularCustoReceita(receitaAtualizada, ingredientes);
+      if (receitaAtualizada.recheios?.length) {
+        custoTotal += calcularCustoRecheios(receitaAtualizada.recheios, receitas);
+      }
 
       // Prepara dados para atualização, removendo observacoes antigas se existir
       const dadosAtualizacao: any = {
@@ -321,14 +336,48 @@ export const useStore = create<StoreState>((set, get) => ({
         delete dadosAtualizacao.observacoes;
       }
 
+      // Remove campos undefined — o Firestore não aceita undefined e pode falhar ou ignorar
+      Object.keys(dadosAtualizacao).forEach((key) => {
+        if (dadosAtualizacao[key] === undefined) {
+          delete dadosAtualizacao[key];
+        }
+      });
+
+      // Normaliza ingredientes: garante que quantidade seja número (form pode enviar string)
+      if (Array.isArray(dadosAtualizacao.ingredientes)) {
+        dadosAtualizacao.ingredientes = dadosAtualizacao.ingredientes.map((ing: any) => ({
+          ingredienteId: ing.ingredienteId,
+          quantidade: typeof ing.quantidade === 'string' ? Number(ing.quantidade) || 0 : Number(ing.quantidade) || 0,
+          unidade: ing.unidade || 'g',
+        }));
+      }
+      // Normaliza recheios: quantidade como número, unidade padrão 'g'
+      if (Array.isArray(dadosAtualizacao.recheios)) {
+        dadosAtualizacao.recheios = dadosAtualizacao.recheios
+          .filter((r: any) => r.recheioId)
+          .map((r: any) => ({
+            recheioId: r.recheioId,
+            quantidade: typeof r.quantidade === 'string' ? Number(r.quantidade) || 0 : Number(r.quantidade) || 0,
+            unidade: r.unidade || 'g',
+          }));
+      }
+
       await updateDoc(receitaRef, dadosAtualizacao);
 
-      // Salva histórico quando receita é atualizada
-      await get().carregarReceitas();
-      const receitaAtualizadaCompleta = get().receitas.find((r) => r.id === id);
-      if (receitaAtualizadaCompleta) {
-        await get().salvarHistoricoReceita(id, receitaAtualizadaCompleta);
-      }
+      // Atualiza o estado local com os dados que acabamos de gravar, evitando condição de corrida
+      // (carregarReceitas() logo após updateDoc pode ler dados ainda não atualizados no servidor)
+      const receitaFinal: Receita = {
+        ...receitaAtualizada,
+        custoTotal,
+        updatedAt: dadosAtualizacao.updatedAt?.toDate?.() || new Date(),
+      };
+      set({
+        receitas: get().receitas.map((r) => (r.id === id ? receitaFinal : r)),
+        loading: false,
+      });
+
+      // Salva histórico com a receita já atualizada
+      await get().salvarHistoricoReceita(id, receitaFinal);
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
     }
