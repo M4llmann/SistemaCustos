@@ -27,12 +27,6 @@ const TIPO_PARA_ROTA: Record<string, TipoReceita> = {
   sobremesas: 'sobremesa',
 };
 
-const ROTA_PARA_TIPO: Record<TipoReceita, string> = {
-  recheio: 'recheios',
-  bolo: 'bolos',
-  sobremesa: 'sobremesas',
-};
-
 const LABELS: Record<TipoReceita, { titulo: string; subtitulo: string; novo: string; editar: string }> = {
   recheio: { titulo: 'Recheios', subtitulo: 'Cadastre recheios para usar em bolos e sobremesas', novo: 'Novo Recheio', editar: 'Editar Recheio' },
   bolo: { titulo: 'Bolos', subtitulo: 'Cadastre e gerencie seus bolos', novo: 'Novo Bolo', editar: 'Editar Bolo' },
@@ -458,13 +452,13 @@ export default function Receitas() {
   const labels = LABELS[tipoReceita];
 
   return (
-    <div className="px-4 py-6 sm:px-0">
-      {/* Submenu Recheios | Bolos | Sobremesas */}
-      <div className="flex gap-2 mb-6">
+    <div className="px-0 py-4 sm:py-6 sm:px-0 max-w-full">
+      {/* Submenu Recheios | Bolos | Sobremesas - scroll horizontal no mobile */}
+      <div className="flex gap-2 mb-4 sm:mb-6 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
         <NavLink
           to="/receitas/recheios"
           className={({ isActive }) =>
-            `px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            `flex-shrink-0 px-3 py-2.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all min-h-[44px] flex items-center ${
               isActive ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md' : 'bg-white/80 text-gray-600 hover:bg-rose-50 hover:text-rose-600 border border-rose-200'
             }`
           }
@@ -474,7 +468,7 @@ export default function Receitas() {
         <NavLink
           to="/receitas/bolos"
           className={({ isActive }) =>
-            `px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            `flex-shrink-0 px-3 py-2.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all min-h-[44px] flex items-center ${
               isActive ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md' : 'bg-white/80 text-gray-600 hover:bg-rose-50 hover:text-rose-600 border border-rose-200'
             }`
           }
@@ -484,7 +478,7 @@ export default function Receitas() {
         <NavLink
           to="/receitas/sobremesas"
           className={({ isActive }) =>
-            `px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+            `flex-shrink-0 px-3 py-2.5 sm:px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all min-h-[44px] flex items-center ${
               isActive ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md' : 'bg-white/80 text-gray-600 hover:bg-rose-50 hover:text-rose-600 border border-rose-200'
             }`
           }
@@ -518,67 +512,72 @@ export default function Receitas() {
         </div>
       )}
 
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col gap-4">
           <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-2">
+            <h2 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-1">
               {labels.titulo}
             </h2>
-            <p className="text-sm text-gray-500 font-medium">
+            <p className="text-xs sm:text-sm text-gray-500 font-medium">
               {labels.subtitulo}
             </p>
           </div>
           {!mostrarForm && (
-            <div className="flex items-center gap-3">
-              <div className="w-64">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-2 w-full sm:w-64">
                 <input
                   type="text"
                   placeholder={`🔍 Buscar ${labels.titulo.toLowerCase()}...`}
                   value={termoBusca}
                   onChange={(e) => setTermoBusca(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
+                  className="flex-1 min-w-0 px-4 py-2.5 min-h-[44px] border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
                 />
+                {termoBusca && (
+                  <button
+                    type="button"
+                    onClick={() => setTermoBusca('')}
+                    className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center text-rose-400 hover:text-rose-600 rounded-xl border border-rose-200"
+                    title="Limpar busca"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
-              {termoBusca && (
+              <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => setTermoBusca('')}
-                  className="text-rose-400 hover:text-rose-600 transition-colors"
-                  title="Limpar busca"
+                  type="button"
+                  onClick={handleGerarRelatorioTodasReceitas}
+                  disabled={receitas.length === 0}
+                  className="min-h-[44px] px-4 py-2.5 rounded-xl bg-gradient-to-r from-slate-600 to-slate-700 text-white hover:from-slate-700 hover:to-slate-800 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-slate-200/50 text-sm sm:text-base whitespace-nowrap"
                 >
-                  ✕
+                  📄 Relatório
                 </button>
-              )}
-              <button
-                onClick={handleGerarRelatorioTodasReceitas}
-                disabled={receitas.length === 0}
-                className="bg-gradient-to-r from-slate-600 to-slate-700 text-white px-5 py-2.5 rounded-xl hover:from-slate-700 hover:to-slate-800 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg shadow-slate-200/50 hover:shadow-xl transition-all duration-200 whitespace-nowrap"
-              >
-                📄 Gerar relatório
-              </button>
-              <button
-                onClick={() => {
-                  setEditandoId(null);
-                  reset({
-                    ingredientes: [{ ingredienteId: '', quantidade: 0, unidade: 'g' }],
-                    recheios: [],
-                    margemLucro: 250,
-                  });
-                  setImagemSelecionada(null);
-                  setPreviewImagem(null);
-                  setMostrarForm(true);
-                }}
-                className="bg-gradient-to-r from-rose-500 to-pink-500 text-white px-5 py-2.5 rounded-xl hover:from-rose-600 hover:to-pink-600 font-semibold shadow-lg shadow-rose-200/50 hover:shadow-xl transition-all duration-200 whitespace-nowrap"
-              >
-                + {labels.novo}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditandoId(null);
+                    reset({
+                      ingredientes: [{ ingredienteId: '', quantidade: 0, unidade: 'g' }],
+                      recheios: [],
+                      margemLucro: 250,
+                    });
+                    setImagemSelecionada(null);
+                    setPreviewImagem(null);
+                    setMostrarForm(true);
+                  }}
+                  className="min-h-[44px] px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 font-semibold shadow-lg shadow-rose-200/50 text-sm sm:text-base whitespace-nowrap"
+                >
+                  + {labels.novo}
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
 
       {mostrarForm && (
-        <div ref={formRef} className="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-8 mb-8 border border-rose-100">
-          <h3 className="text-xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-6">
+        <div ref={formRef} className="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 border border-rose-100">
+          <h3 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-4 sm:mb-6">
             {editandoId ? labels.editar : labels.novo}
           </h3>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -600,53 +599,55 @@ export default function Receitas() {
                 Ingredientes
               </label>
               {fields.map((field, index) => (
-                <div key={field.id} className="flex gap-2 mb-2">
-                  <AutocompleteIngrediente
-                    ingredientes={ingredientes}
-                    value={watch(`ingredientes.${index}.ingredienteId`) || ''}
-                    onChange={(ingredienteId) => {
-                      setValue(`ingredientes.${index}.ingredienteId`, ingredienteId, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                      });
-                      const ing = ingredientes.find((i) => i.id === ingredienteId);
-                      if (ing) setValue(`ingredientes.${index}.unidade`, ing.unidadeBase, { shouldDirty: true });
-                    }}
-                    onBlur={() => {
-                      // Validation será feita automaticamente pelo react-hook-form
-                    }}
-                    error={errors.ingredientes?.[index]?.ingredienteId?.message}
-                    required
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    {...register(`ingredientes.${index}.quantidade`, {
-                      required: 'Quantidade é obrigatória',
-                      min: { value: 0.01, message: 'Quantidade deve ser maior que zero' },
-                    })}
-                    placeholder="Qtd"
-                    className="w-24 px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
-                  />
-                  <select
-                    {...register(`ingredientes.${index}.unidade`)}
-                    className="w-20 px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
-                  >
-                    {unidades.map((unidade) => (
-                      <option key={unidade} value={unidade}>
-                        {unidade}
-                      </option>
-                    ))}
-                  </select>
-                  {fields.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => remove(index)}
-                      className="px-3 py-2 bg-gradient-to-r from-red-400 to-red-500 text-white rounded-xl hover:from-red-500 hover:to-red-600 shadow-sm transition-all"
+                <div key={field.id} className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3 p-3 rounded-xl bg-rose-50/50 border border-rose-100">
+                  <div className="w-full sm:flex-1 min-w-0">
+                    <AutocompleteIngrediente
+                      ingredientes={ingredientes}
+                      value={watch(`ingredientes.${index}.ingredienteId`) || ''}
+                      onChange={(ingredienteId) => {
+                        setValue(`ingredientes.${index}.ingredienteId`, ingredienteId, {
+                          shouldValidate: true,
+                          shouldDirty: true,
+                        });
+                        const ing = ingredientes.find((i) => i.id === ingredienteId);
+                        if (ing) setValue(`ingredientes.${index}.unidade`, ing.unidadeBase, { shouldDirty: true });
+                      }}
+                      onBlur={() => {}}
+                      error={errors.ingredientes?.[index]?.ingredienteId?.message}
+                      required
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                      type="number"
+                      step="0.01"
+                      {...register(`ingredientes.${index}.quantidade`, {
+                        required: 'Quantidade é obrigatória',
+                        min: { value: 0.01, message: 'Quantidade deve ser maior que zero' },
+                      })}
+                      placeholder="Qtd"
+                      className="w-20 sm:w-24 px-3 py-2.5 min-h-[44px] border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
+                    />
+                    <select
+                      {...register(`ingredientes.${index}.unidade`)}
+                      className="w-16 sm:w-20 px-2 py-2.5 min-h-[44px] border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
                     >
-                      Remover
-                    </button>
-                  )}
+                      {unidades.map((unidade) => (
+                        <option key={unidade} value={unidade}>
+                          {unidade}
+                        </option>
+                      ))}
+                    </select>
+                    {fields.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        className="min-h-[44px] px-3 py-2 bg-gradient-to-r from-red-400 to-red-500 text-white rounded-xl hover:from-red-500 hover:to-red-600 shadow-sm transition-all text-sm"
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
               <button
@@ -673,38 +674,42 @@ export default function Receitas() {
                 ) : (
                   <>
                     {fieldsRecheios.map((field, index) => (
-                      <div key={field.id} className="flex gap-2 mb-2 items-center">
-                        <AutocompleteRecheio
-                          recheios={receitasRecheio}
-                          value={watch(`recheios.${index}.recheioId`) || ''}
-                          onChange={(recheioId) => {
-                            setValue(`recheios.${index}.recheioId`, recheioId, { shouldDirty: true });
-                            const recheio = receitasRecheio.find((r) => r.id === recheioId);
-                            if (recheio) setValue(`recheios.${index}.unidade`, recheio.unidadePadrao ?? 'g', { shouldDirty: true });
-                          }}
-                        />
-                        <input
-                          type="number"
-                          step="0.01"
-                          {...register(`recheios.${index}.quantidade`, { min: 0 })}
-                          placeholder="Peso"
-                          className="w-24 px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
-                        />
-                        <select
-                          {...register(`recheios.${index}.unidade`)}
-                          className="w-20 px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
-                        >
-                          {unidades.map((unidade) => (
-                            <option key={unidade} value={unidade}>{unidade}</option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => removeRecheio(index)}
-                          className="px-3 py-2 bg-gradient-to-r from-red-400 to-red-500 text-white rounded-xl hover:from-red-500 hover:to-red-600 shadow-sm transition-all"
-                        >
-                          Remover
-                        </button>
+                      <div key={field.id} className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3 p-3 rounded-xl bg-rose-50/50 border border-rose-100">
+                        <div className="w-full sm:flex-1 min-w-0">
+                          <AutocompleteRecheio
+                            recheios={receitasRecheio}
+                            value={watch(`recheios.${index}.recheioId`) || ''}
+                            onChange={(recheioId) => {
+                              setValue(`recheios.${index}.recheioId`, recheioId, { shouldDirty: true });
+                              const recheio = receitasRecheio.find((r) => r.id === recheioId);
+                              if (recheio) setValue(`recheios.${index}.unidade`, recheio.unidadePadrao ?? 'g', { shouldDirty: true });
+                            }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <input
+                            type="number"
+                            step="0.01"
+                            {...register(`recheios.${index}.quantidade`, { min: 0 })}
+                            placeholder="Peso"
+                            className="w-20 sm:w-24 px-3 py-2.5 min-h-[44px] border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
+                          />
+                          <select
+                            {...register(`recheios.${index}.unidade`)}
+                            className="w-16 sm:w-20 px-2 py-2.5 min-h-[44px] border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
+                          >
+                            {unidades.map((unidade) => (
+                              <option key={unidade} value={unidade}>{unidade}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => removeRecheio(index)}
+                            className="min-h-[44px] px-3 py-2 bg-gradient-to-r from-red-400 to-red-500 text-white rounded-xl hover:from-red-500 hover:to-red-600 shadow-sm transition-all text-sm"
+                          >
+                            Remover
+                          </button>
+                        </div>
                       </div>
                     ))}
                     <button
@@ -884,7 +889,7 @@ export default function Receitas() {
       )}
 
       {/* Grid de Cards Quadrados */}
-      <div className="bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden rounded-2xl border border-rose-100 p-6">
+      <div className="bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden rounded-2xl border border-rose-100 p-3 sm:p-6">
         {receitasDesteTipo.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-gray-400 font-medium">Nenhum(a) {labels.titulo.toLowerCase().replace(/s$/, '')} cadastrado(a) ainda.</p>
@@ -894,7 +899,7 @@ export default function Receitas() {
             <p className="text-gray-400 font-medium">Nenhum resultado encontrado com "{termoBusca}".</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
             {receitasFiltradas.map((receita) => (
               <div
                 key={receita.id}
@@ -961,29 +966,29 @@ export default function Receitas() {
       {/* Modal de Detalhes da Receita */}
       {receitaDetalhes && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setReceitaDetalhes(null);
             }
           }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl w-[50%] max-h-[90vh] overflow-hidden flex flex-col mx-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg md:max-w-2xl sm:w-[90%] max-h-[92vh] overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="bg-gradient-to-r from-rose-500 to-pink-500 text-white p-6 relative">
-              <div className="flex justify-between items-start">
-                <div className="flex-1 pr-8">
-                  <h2 className="text-2xl font-bold mb-1">{receitaDetalhes.nome}</h2>
-                  <div className="flex gap-4 mt-3">
+            <div className="bg-gradient-to-r from-rose-500 to-pink-500 text-white p-4 sm:p-6 relative flex-shrink-0">
+              <div className="flex justify-between items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg sm:text-2xl font-bold mb-1 truncate pr-8">{receitaDetalhes.nome}</h2>
+                  <div className="flex flex-wrap gap-4 mt-2 sm:mt-3">
                     <div>
-                      <p className="text-xs text-rose-100 mb-1">Custo:</p>
-                      <p className="text-lg font-bold">
+                      <p className="text-xs text-rose-100 mb-0.5">Custo:</p>
+                      <p className="text-base sm:text-lg font-bold">
                         {formatarMoeda(receitaDetalhes.custoTotal)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-rose-100 mb-1">Preço Sugerido:</p>
-                      <p className="text-lg font-bold">
+                      <p className="text-xs text-rose-100 mb-0.5">Preço Sugerido:</p>
+                      <p className="text-base sm:text-lg font-bold">
                         {formatarMoeda(receitaDetalhes.custoTotal * ((receitaDetalhes.margemLucro || 250) / 100))}
                       </p>
                     </div>
@@ -991,22 +996,21 @@ export default function Receitas() {
                 </div>
                 <button
                   onClick={() => setReceitaDetalhes(null)}
-                  className="text-white hover:text-rose-100 transition-colors text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 flex-shrink-0"
+                  className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center text-white hover:text-rose-100 text-2xl font-bold rounded-full hover:bg-white/20"
+                  aria-label="Fechar"
                 >
                   ×
                 </button>
               </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {/* Layout: Imagem/Descrição à esquerda, Ingredientes à direita */}
-              <div className="flex gap-4 items-start">
-                {/* Lado Esquerdo: Imagem e Descrição */}
-                <div className="w-1/4 flex-shrink-0 flex flex-col gap-4">
-                  {/* Imagem */}
+            {/* Content - coluna no mobile, linha no desktop */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+              <div className="flex flex-col md:flex-row md:gap-4 md:items-start">
+                {/* Imagem e Descrição - no mobile em cima, no desktop à esquerda */}
+                <div className="w-full md:w-1/4 flex-shrink-0 flex flex-col gap-4 order-1">
                   {receitaDetalhes.imagemUrl && (
-                    <div className="w-full aspect-square rounded-xl overflow-hidden border-2 border-rose-200 bg-gradient-to-br from-rose-100 to-pink-100">
+                    <div className="w-full max-w-[200px] mx-auto md:max-w-none aspect-square rounded-xl overflow-hidden border-2 border-rose-200 bg-gradient-to-br from-rose-100 to-pink-100">
                       <img
                         src={receitaDetalhes.imagemUrl}
                         alt={receitaDetalhes.nome}
@@ -1014,8 +1018,6 @@ export default function Receitas() {
                       />
                     </div>
                   )}
-
-                  {/* Descrição abaixo da imagem */}
                   <div>
                     <p className="text-sm font-semibold text-rose-600 mb-2">Descrição:</p>
                     {receitaDetalhes.descricao ? (
@@ -1030,18 +1032,17 @@ export default function Receitas() {
                   </div>
                 </div>
 
-                {/* Lado Direito: Ingredientes - Centralizados */}
-                <div className="flex-1 flex flex-col items-center">
+                <div className="flex-1 flex flex-col min-w-0 order-2">
                   <p className="text-sm font-semibold text-purple-600 mb-2">
                     Ingredientes ({receitaDetalhes.ingredientes.length}):
                   </p>
-                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-100 max-h-[calc(90vh-300px)] overflow-y-auto w-full">
+                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-100 max-h-[40vh] sm:max-h-[calc(90vh-320px)] overflow-y-auto w-full">
                     <ul className="space-y-2">
                       {receitaDetalhes.ingredientes.map((ing, idx) => {
                         const ingrediente = ingredientes.find((i) => i.id === ing.ingredienteId);
                         return (
-                          <li key={idx} className="text-sm text-gray-700 flex items-center justify-center gap-2">
-                            <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
+                          <li key={idx} className="text-sm text-gray-700 flex items-center gap-2 flex-wrap">
+                            <span className="w-2 h-2 bg-purple-400 rounded-full flex-shrink-0"></span>
                             <span className="font-medium text-purple-700">
                               {ingrediente?.nome || 'Ingrediente não encontrado'}
                             </span>
@@ -1076,33 +1077,36 @@ export default function Receitas() {
             </div>
 
             {/* Footer com Botões de Ação */}
-            <div className="border-t border-rose-200 p-4 bg-rose-50 flex flex-wrap gap-3">
+            <div className="border-t border-rose-200 p-3 sm:p-4 bg-rose-50 flex flex-wrap gap-2 sm:gap-3 flex-shrink-0">
               <button
+                type="button"
                 onClick={() => {
                   handleEdit(receitaDetalhes);
                   setReceitaDetalhes(null);
                 }}
-                className="flex-1 min-w-[100px] bg-gradient-to-r from-rose-500 to-pink-500 text-white py-2.5 rounded-xl hover:from-rose-600 hover:to-pink-600 font-semibold shadow-md shadow-rose-200/50 hover:shadow-lg transition-all duration-200"
+                className="flex-1 min-w-[80px] min-h-[44px] bg-gradient-to-r from-rose-500 to-pink-500 text-white py-2.5 rounded-xl hover:from-rose-600 hover:to-pink-600 font-semibold shadow-md shadow-rose-200/50 hover:shadow-lg transition-all duration-200 text-sm"
               >
                 Editar
               </button>
               <button
+                type="button"
                 onClick={() => {
                   handleAbrirHistorico(receitaDetalhes);
                   setReceitaDetalhes(null);
                 }}
-                className="flex-1 min-w-[100px] bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2.5 rounded-xl hover:from-purple-600 hover:to-pink-600 font-semibold shadow-md shadow-purple-200/50 hover:shadow-lg transition-all duration-200"
+                className="flex-1 min-w-[80px] min-h-[44px] bg-gradient-to-r from-purple-500 to-pink-500 text-white py-2.5 rounded-xl hover:from-purple-600 hover:to-pink-600 font-semibold shadow-md shadow-purple-200/50 hover:shadow-lg transition-all duration-200 text-sm"
               >
                 Histórico
               </button>
               <button
+                type="button"
                 onClick={() => {
                   if (confirm('Tem certeza que deseja deletar esta receita?')) {
                     deletarReceita(receitaDetalhes.id);
                     setReceitaDetalhes(null);
                   }
                 }}
-                className="flex-1 min-w-[100px] bg-gradient-to-r from-red-500 to-red-600 text-white py-2.5 rounded-xl hover:from-red-600 hover:to-red-700 font-semibold shadow-md shadow-red-200/50 hover:shadow-lg transition-all duration-200"
+                className="flex-1 min-w-[80px] min-h-[44px] bg-gradient-to-r from-red-500 to-red-600 text-white py-2.5 rounded-xl hover:from-red-600 hover:to-red-700 font-semibold shadow-md shadow-red-200/50 hover:shadow-lg transition-all duration-200 text-sm"
               >
                 Deletar
               </button>

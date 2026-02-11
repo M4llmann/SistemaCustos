@@ -23,8 +23,8 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Carregando...</div>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-lg sm:text-xl font-medium text-gray-600">Carregando...</div>
       </div>
     );
   }

@@ -79,44 +79,46 @@ export default function Ingredientes() {
   );
 
   return (
-    <div className="px-4 py-6 sm:px-0">
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
+    <div className="px-0 py-4 sm:py-6 sm:px-0 max-w-full">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col gap-4">
           <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-2">
+            <h2 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-1">
               Ingredientes
             </h2>
-            <p className="text-sm text-gray-500 font-medium">
+            <p className="text-xs sm:text-sm text-gray-500 font-medium">
               Cadastre e gerencie seus ingredientes
             </p>
           </div>
           {!mostrarForm && (
-            <div className="flex items-center gap-3">
-              <div className="w-64">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-2 w-full sm:w-64">
                 <input
                   type="text"
                   placeholder="🔍 Buscar ingredientes..."
                   value={termoBusca}
                   onChange={(e) => setTermoBusca(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
+                  className="flex-1 min-w-0 px-4 py-2.5 min-h-[44px] border border-rose-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-rose-400 shadow-sm transition-all"
                 />
+                {termoBusca && (
+                  <button
+                    type="button"
+                    onClick={() => setTermoBusca('')}
+                    className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center text-rose-400 hover:text-rose-600 rounded-xl border border-rose-200"
+                    title="Limpar busca"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
-              {termoBusca && (
-                <button
-                  onClick={() => setTermoBusca('')}
-                  className="text-rose-400 hover:text-rose-600 transition-colors"
-                  title="Limpar busca"
-                >
-                  ✕
-                </button>
-              )}
               <button
+                type="button"
                 onClick={() => {
                   setEditandoId(null);
                   reset();
                   setMostrarForm(true);
                 }}
-                className="bg-gradient-to-r from-rose-500 to-pink-500 text-white px-5 py-2.5 rounded-xl hover:from-rose-600 hover:to-pink-600 font-semibold shadow-lg shadow-rose-200/50 hover:shadow-xl transition-all duration-200 whitespace-nowrap"
+                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 font-semibold shadow-lg shadow-rose-200/50 hover:shadow-xl transition-all duration-200 whitespace-nowrap text-sm sm:text-base"
               >
                 + Novo Ingrediente
               </button>
@@ -126,7 +128,7 @@ export default function Ingredientes() {
       </div>
 
       {mostrarForm && (
-        <div className="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-8 mb-8 border border-rose-100">
+        <div className="bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 border border-rose-100">
           <h3 className="text-xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-6">
             {editandoId ? 'Editar Ingrediente' : 'Novo Ingrediente'}
           </h3>
@@ -220,54 +222,55 @@ export default function Ingredientes() {
 
       <div className="bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden rounded-2xl border border-rose-100">
         {ingredientes.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-gray-400 font-medium">Nenhum ingrediente cadastrado ainda.</p>
+          <div className="text-center py-12 sm:py-16">
+            <p className="text-gray-400 font-medium text-sm sm:text-base">Nenhum ingrediente cadastrado ainda.</p>
           </div>
         ) : ingredientesFiltrados.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-gray-400 font-medium">Nenhum ingrediente encontrado com "{termoBusca}".</p>
+          <div className="text-center py-12 sm:py-16">
+            <p className="text-gray-400 font-medium text-sm sm:text-base">Nenhum ingrediente encontrado com "{termoBusca}".</p>
           </div>
         ) : (
-          <ul className="p-5 space-y-3">
+          <ul className="p-3 sm:p-5 space-y-3">
             {ingredientesFiltrados.map((ingrediente) => (
-              <li key={ingrediente.id} className="bg-white border border-rose-100 rounded-xl px-5 py-4 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 hover:border-rose-200 hover:shadow-lg transition-all duration-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center">
-                      <p className="text-base font-bold text-gray-800">
-                        {ingrediente.nome}
-                      </p>
-                    </div>
-                    <div className="mt-2 flex items-center text-sm">
+              <li key={ingrediente.id} className="bg-white border border-rose-100 rounded-xl px-3 sm:px-5 py-3 sm:py-4 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 hover:border-rose-200 hover:shadow-lg transition-all duration-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm sm:text-base font-bold text-gray-800 truncate">
+                      {ingrediente.nome}
+                    </p>
+                    <div className="mt-1 sm:mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:text-sm">
                       <span className="text-rose-600 font-medium">
                         <span className="font-semibold">{formatarMoeda(ingrediente.precoTotal)}</span> / {ingrediente.medidaTotal} {ingrediente.unidadeBase}
                       </span>
-                      <span className="mx-2 text-rose-300">•</span>
+                      <span className="text-rose-300 hidden sm:inline">•</span>
                       <span className="font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                         {formatarMoeda(ingrediente.precoPorUnidade)} / {ingrediente.unidadeBase}
                       </span>
                     </div>
                   </div>
-                  <div className="ml-4 flex space-x-2">
+                  <div className="flex flex-wrap gap-2">
                     <button
+                      type="button"
                       onClick={() => handleAbrirHistorico(ingrediente)}
-                      className="text-purple-600 hover:text-purple-700 text-sm font-semibold bg-purple-50 hover:bg-purple-100 px-4 py-2 rounded-xl transition-all duration-200 shadow-sm"
+                      className="min-h-[44px] px-3 py-2 text-purple-600 hover:text-purple-700 text-xs sm:text-sm font-semibold bg-purple-50 hover:bg-purple-100 rounded-xl transition-all duration-200 shadow-sm"
                     >
                       Histórico
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleEdit(ingrediente)}
-                      className="text-rose-600 hover:text-rose-700 text-sm font-semibold bg-rose-50 hover:bg-rose-100 px-4 py-2 rounded-xl transition-all duration-200 shadow-sm"
+                      className="min-h-[44px] px-3 py-2 text-rose-600 hover:text-rose-700 text-xs sm:text-sm font-semibold bg-rose-50 hover:bg-rose-100 rounded-xl transition-all duration-200 shadow-sm"
                     >
                       Editar
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         if (confirm('Tem certeza que deseja deletar este ingrediente?')) {
                           deletarIngrediente(ingrediente.id);
                         }
                       }}
-                      className="text-red-600 hover:text-red-700 text-sm font-semibold bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl transition-all duration-200 shadow-sm"
+                      className="min-h-[44px] px-3 py-2 text-red-600 hover:text-red-700 text-xs sm:text-sm font-semibold bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-200 shadow-sm"
                     >
                       Deletar
                     </button>

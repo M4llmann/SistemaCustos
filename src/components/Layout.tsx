@@ -24,9 +24,12 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 flex flex-col md:flex-row">
       {/* Top bar (mobile) */}
-      <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white/80 shadow-sm border-b border-rose-100 z-30">
-        <div>
-          <h1 className="text-lg font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">
+      <header
+        className="md:hidden flex items-center justify-between px-4 py-3 bg-white/90 shadow-sm border-b border-rose-100 z-30"
+        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+      >
+        <div className="min-w-0 flex-1">
+          <h1 className="text-base sm:text-lg font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent truncate">
             Sistema de Custos
           </h1>
           <p className="text-[11px] text-rose-500 font-medium">Gestão Inteligente</p>
@@ -34,7 +37,8 @@ export default function Layout({ children }: LayoutProps) {
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}
-          className="p-2 rounded-xl border border-rose-200 bg-white text-rose-600 shadow-sm"
+          className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-rose-200 bg-white text-rose-600 shadow-sm text-xl"
+          aria-label="Abrir menu"
         >
           ☰
         </button>
@@ -122,24 +126,25 @@ export default function Layout({ children }: LayoutProps) {
               <button
                 type="button"
                 onClick={() => setSidebarOpen(false)}
-                className="text-rose-700 text-xl font-bold px-2"
+                className="text-rose-700 text-2xl font-bold min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-white/50"
+                aria-label="Fechar menu"
               >
                 ×
               </button>
             </div>
             <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-              <Link
-                to="/dashboard"
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${isActive('/dashboard')}`}
+<Link
+              to="/dashboard"
+              onClick={() => setSidebarOpen(false)}
+                className={`flex items-center px-4 py-3 min-h-[48px] rounded-xl text-sm font-semibold transition-all duration-200 ${isActive('/dashboard')}`}
               >
                 <span className="mr-3 text-lg">📊</span>
                 Dashboard
               </Link>
-              <Link
-                to="/ingredientes"
-                onClick={() => setSidebarOpen(false)}
-                className={`flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${isActive('/ingredientes')}`}
+<Link
+              to="/ingredientes"
+              onClick={() => setSidebarOpen(false)}
+                className={`flex items-center px-4 py-3 min-h-[48px] rounded-xl text-sm font-semibold transition-all duration-200 ${isActive('/ingredientes')}`}
               >
                 <span className="mr-3 text-lg">📦</span>
                 Ingredientes
@@ -196,8 +201,13 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-64 mt-16 md:mt-0">
-        <div className="p-4 sm:p-6 md:p-8">
+      <main
+        className="flex-1 md:ml-64 mt-14 md:mt-0 min-h-0 overflow-auto"
+        style={{
+          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+        }}
+      >
+        <div className="p-3 sm:p-6 md:p-8 max-w-full overflow-x-hidden">
           {children}
         </div>
       </main>

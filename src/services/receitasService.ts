@@ -1,4 +1,4 @@
-import { Receita, Ingrediente, RecheioReceita, UnidadeMedida } from '../types';
+import { Receita, Ingrediente, RecheioReceita } from '../types';
 import { calcularCustoIngrediente, converterUnidade } from '../utils/calculos';
 
 /**

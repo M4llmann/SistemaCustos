@@ -12,17 +12,17 @@ export default function Dashboard() {
   const totalReceitas = receitas.length;
 
   return (
-    <div className="px-4 py-6 sm:px-0">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-2">
+    <div className="px-0 py-4 sm:py-6 sm:px-0 max-w-full">
+      <div className="mb-6 sm:mb-8">
+        <h2 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-1">
           Dashboard
         </h2>
-        <p className="text-sm text-gray-500 font-medium">
+        <p className="text-xs sm:text-sm text-gray-500 font-medium">
           Visão geral do seu sistema de custos
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-2">
         <div className="bg-white/90 backdrop-blur-sm overflow-hidden shadow-xl rounded-2xl border border-rose-100 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300">
           <div className="p-6 bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50">
             <div className="flex items-center">
@@ -65,29 +65,29 @@ export default function Dashboard() {
       </div>
 
       {receitas.length > 0 && (
-        <div className="mt-10">
-          <h3 className="text-xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-6">
+        <div className="mt-6 sm:mt-10">
+          <h3 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent mb-4 sm:mb-6">
             Receitas Recentes
           </h3>
           <div className="bg-white/90 backdrop-blur-sm shadow-xl overflow-hidden rounded-2xl border border-rose-100">
             <ul className="divide-y divide-rose-50">
               {receitas.slice(0, 5).map((receita) => (
-                <li 
+                <li
                   key={receita.id}
                   onClick={() => navigate(`/receitas/${ROTA_PARA_TIPO_RECEITA[receita.tipo ?? 'bolo']}`, { state: { receitaId: receita.id } })}
-                  className="cursor-pointer hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 transition-all duration-200 border-l-4 border-transparent hover:border-rose-400 hover:shadow-md"
+                  className="cursor-pointer hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 transition-all duration-200 border-l-4 border-transparent hover:border-rose-400 hover:shadow-md active:bg-rose-50/80"
                 >
-                  <div className="px-6 py-5 flex justify-between items-center">
-                    <div className="flex items-center gap-4 flex-1">
+                  <div className="px-3 sm:px-6 py-3 sm:py-5 flex justify-between items-center gap-3">
+                    <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                       {receita.imagemUrl && (
                         <img
                           src={receita.imagemUrl}
                           alt={receita.nome}
-                          className="h-14 w-14 object-cover rounded-xl border-2 border-rose-200 shadow-md flex-shrink-0"
+                          className="h-12 w-12 sm:h-14 sm:w-14 object-cover rounded-xl border-2 border-rose-200 shadow-md flex-shrink-0"
                         />
                       )}
-                      <div>
-                        <p className="text-sm font-bold text-gray-800 mb-1">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-gray-800 mb-0.5 truncate">
                           {receita.nome}
                         </p>
                         <p className="text-xs text-rose-500 font-medium">
@@ -95,7 +95,7 @@ export default function Dashboard() {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <p className="text-sm font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                         {formatarMoeda(receita.custoTotal)}
                       </p>
